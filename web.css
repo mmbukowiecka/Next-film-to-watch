@@ -95,3 +95,5 @@ select{appearance:none;-webkit-appearance:none;min-width:160px;padding-right:44p
 .rf[aria-pressed="true"]{background:#00e054;color:#14181c}
 .scrollbtn{font-size:20px;line-height:1;padding:2px 12px}
 @media(max-width:700px){.lede{white-space:normal}.moodrow{flex-wrap:wrap}}
+
+.lede{max-width:none!important;width:100%;margin-left:auto;margin-right:auto;text-align:center!important;text-overflow:clip!important;font-size:15px}
