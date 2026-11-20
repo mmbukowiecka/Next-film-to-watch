@@ -65,7 +65,7 @@ function parseRSS(xml) {
     const g = t => it.getElementsByTagName(t)[0]?.textContent || "";
     const name = g("letterboxd:filmTitle");
     if (!name) return null;
-    return { name, year: +g("letterboxd:filmYear") || null, rating: +g("letterboxd:memberRating") || null, date: g("letterboxd:watchedDate"), poster: ((g("description").match(/<img[^>]+src="([^"]+)"/) || [])[1] || "") };
+    return { name, year: +g("letterboxd:filmYear") || null, rating: +g("letterboxd:memberRating") || null, date: g("letterboxd:watchedDate"), liked: g("letterboxd:memberLike") === "Yes", poster: ((g("description").match(/<img[^>]+src="([^"]+)"/) || [])[1] || "") };
   }).filter(Boolean);
   const keys = new Set(), out = [];
   items.sort((a, b) => (b.date || "").localeCompare(a.date || "")).forEach(f => {
@@ -157,13 +157,26 @@ async function fetchYear(user) {
   return { year, count: byId.size, rated: rs.length, avg: rs.length ? rs.reduce((s, x) => s + x, 0) / rs.length : null };
 }
 
+function fmtDate(d) {
+  if (!d) return "";
+  const t = new Date(d + "T12:00:00");
+  if (isNaN(t)) return d;
+  const sameYear = t.getFullYear() === new Date().getFullYear();
+  return t.toLocaleDateString("en-GB", sameYear ? { day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "numeric" });
+}
+
 function filmCard(f, cls, pick) {
   const b = document.createElement("button"); b.type = "button"; b.className = cls; b.setAttribute("aria-pressed", "false");
+  b.title = f.name + (f.year ? " (" + f.year + ")" : ""); b.setAttribute("aria-label", b.title);
   if (f.poster) { const im = document.createElement("img"); im.src = f.poster; im.alt = ""; im.loading = "lazy"; im.referrerPolicy = "no-referrer"; b.append(im); }
-  const t = document.createElement("b"); t.textContent = f.name;
-  const s = document.createElement("span"); s.textContent = [f.year, f.date].filter(Boolean).join(" · ");
-  b.append(t, s);
-  if (f.rating) { const i = document.createElement("i"); i.textContent = stars(f.rating); b.append(i); }
+  else { const t = document.createElement("b"); t.textContent = f.name; b.append(t); }
+  if (cls === "rfilm") {
+    const m = document.createElement("div"); m.className = "meta2";
+    if (f.rating) { const i = document.createElement("i"); i.textContent = stars(f.rating); m.append(i); }
+    if (f.liked) { const h = document.createElement("em"); h.textContent = "♥"; h.title = "Liked"; m.append(h); }
+    if (f.date) { const d = document.createElement("span"); d.textContent = fmtDate(f.date); m.append(d); }
+    b.append(m);
+  }
   b.onclick = () => {
     document.querySelectorAll("." + cls).forEach(x => x.setAttribute("aria-pressed", "false"));
     b.setAttribute("aria-pressed", "true"); pick(f);

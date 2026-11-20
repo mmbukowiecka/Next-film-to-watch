@@ -6,7 +6,7 @@
 <title>Next film to watch</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,400;1,9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="web.css">
 </head>
 <body>
@@ -17,7 +17,7 @@
   </header>
 
   <section class="panel">
-    <h2>1 · Your Letterboxd</h2>
+    <h2>Your Letterboxd</h2>
     <div class="row">
       <input type="text" id="user" placeholder="Letterboxd username" value="michalinab" autocomplete="off" spellcheck="false">
       <button id="load">Load my films</button>
@@ -35,7 +35,7 @@
   </section>
 
   <section class="panel" id="favPanel" hidden>
-    <div class="row between"><h2>Your top 4</h2><span class="hint">Click one to find films you haven't seen that feel similar</span></div>
+    <div class="row between"><h2>Top 4</h2><span class="hint">Click one to find films you haven't seen that feel similar</span></div>
     <div class="favgrid" id="favs"></div>
     <div id="fsBox" hidden><div class="label" id="fsTitle"></div><ol class="recs" id="fsRecs"></ol></div>
   </section>
@@ -47,7 +47,7 @@
   </section>
 
   <section class="panel">
-    <h2>2 · What do you want to watch?</h2>
+    <h2>What do you want to watch?</h2>
     <textarea id="extra" rows="3" placeholder="Describe it in your own words, whatever is in your head"></textarea>
     <div>
       <div class="label">Pick one or more</div>
