@@ -59,3 +59,37 @@ summary{cursor:pointer;font-weight:600}
 .rec a{color:var(--accent);font-size:.85rem}
 .wl{font-size:.72rem;background:var(--star);color:var(--surface);border-radius:4px;padding:1px 6px;margin-left:8px;vertical-align:middle}
 .match{font-family:var(--mono);font-size:.78rem;color:var(--star);margin-left:8px;font-weight:400}
+
+
+/* ---- Fonts: Britannic for titles, Garamond for everything else ---- */
+:root{
+  --display:"Britannic Bold","Britannic",Garamond,"EB Garamond","Cormorant Garamond",Georgia,serif;
+  --body:Garamond,"EB Garamond","Cormorant Garamond",Georgia,serif;
+}
+body{font-size:18px;line-height:1.5}
+h1,h2,h3{font-weight:400;letter-spacing:.01em}
+h1{font-size:clamp(2.4rem,6.5vw,3.6rem)}
+h2{font-size:1.6rem}
+.rec h3{font-size:1.4rem}
+.rank{font-weight:400}
+button,input,select,textarea{font-family:var(--body)}
+.rfilm b,.favcard b{font-family:var(--display);font-weight:400;letter-spacing:.01em}
+.label{font-size:.78rem}
+
+/* ---- Stats tiles ---- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:var(--chip);border-radius:10px;padding:12px 14px;display:grid;gap:2px}
+.stat b{font-family:var(--display);font-weight:400;font-size:2rem;line-height:1.05}
+.stat span{font-size:.9rem;color:var(--muted)}
+
+/* ---- Top 4 and recently watched, with posters ---- */
+.favgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.recent{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.favcard,.rfilm{display:grid;align-content:start;gap:3px;text-align:left;background:var(--bg);color:var(--fg);border:1px solid var(--line);font-weight:400;padding:8px}
+.favcard img,.rfilm img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:4px;background:var(--chip);margin-bottom:4px}
+.favcard b{font-size:1.1rem;line-height:1.15}
+.rfilm b{font-size:1rem;line-height:1.15}
+.favcard span,.rfilm span{font-family:var(--body);font-size:.85rem;color:var(--muted)}
+.favcard i,.rfilm i{font-style:normal;color:var(--star);font-size:.9rem}
+.favcard[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+@media (max-width:560px){.favgrid{grid-template-columns:repeat(2,1fr)}}

@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Next film to watch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="web.css">
 </head>
 <body>
@@ -21,7 +24,6 @@
     </div>
     <div class="status" id="loadStatus"></div>
     <div class="stats" id="stats"></div>
-    <div id="favsBox" hidden><div class="label">Your highest-rated films</div><div class="favs" id="favs"></div></div>
     <details id="keyBox">
       <summary>Claude API key <span id="keyState" class="hint"></span></summary>
       <div class="row" style="margin-top:10px">
@@ -32,6 +34,12 @@
     </details>
   </section>
 
+  <section class="panel" id="favPanel" hidden>
+    <div class="row between"><h2>Your top 4</h2><span class="hint">Click one to find films you haven't seen that feel similar</span></div>
+    <div class="favgrid" id="favs"></div>
+    <div id="fsBox" hidden><div class="label" id="fsTitle"></div><ol class="recs" id="fsRecs"></ol></div>
+  </section>
+
   <section class="panel" id="recentPanel" hidden>
     <div class="row between"><h2>Recently watched</h2><span class="hint">Click a film to find ones like it</span></div>
     <div class="recent" id="recent"></div>
@@ -40,26 +48,32 @@
 
   <section class="panel">
     <h2>2 · What do you want to watch?</h2>
-    <textarea id="extra" rows="2" placeholder="Describe it in your own words, e.g. 'a stylish 70s thriller with a twist, nothing too gory'"></textarea>
+    <textarea id="extra" rows="3" placeholder="Describe it in your own words, whatever is in your head"></textarea>
     <div>
       <div class="label">Pick one or more</div>
       <div class="moods" id="moods">
-        <button type="button" class="mood" data-p="a must-watch film widely considered essential that they haven't seen yet">Must-watch I haven't seen</button>
-        <button type="button" class="mood" data-p="a classic released before 1980">Pre-1980 classic</button>
-        <button type="button" class="mood" data-p="a thriller">Thriller</button>
+        <button type="button" class="mood" data-p="a must-watch classic widely considered essential that they haven't seen yet">Classics yet to watch</button>
+        <button type="button" class="mood" data-p="a classic released before 1980">Old classic (pre-1980)</button>
+        <button type="button" class="mood" data-p="a mind-puzzling thriller with twists that keep you guessing">Mind-puzzling thriller</button>
         <button type="button" class="mood" data-p="something weird and surprising">Weird &amp; surprising</button>
-        <button type="button" class="mood" data-p="a horror film">Horror</button>
-        <button type="button" class="mood" data-p="a film celebrated for beautiful cinematography">Beautiful cinematography</button>
-        <button type="button" class="mood" data-p="an award winner (Oscar, Palme d'Or, Golden Lion, Golden Bear or similar); name the award in the why">Award winner</button>
-        <button type="button" class="mood" data-p="only films with a Letterboxd average rating above 4.0 out of 5">Rated 4★+ on Letterboxd</button>
+        <button type="button" class="mood" data-p="a gory horror film">Gory horror</button>
+        <button type="button" class="mood" data-p="a film with indie vibes: small-scale, independent and author-driven">Indie vibes</button>
+        <button type="button" class="mood" data-p="a film that was revolutionary in cinema history, influential and changed the medium">Cinema history revolutionary</button>
+        <button type="button" class="mood" data-p="a film celebrated for insane, beautiful cinematography">Insane cinematography</button>
+        <button type="button" class="mood" data-p="an award-winning film, preferably an Oscar winner; name the award in the why">Award winning (Oscars preferred)</button>
+        <button type="button" class="mood" data-p="only films with a Letterboxd average rating of 4.0 out of 5 or higher">Rated 4+</button>
+        <button type="button" class="mood" data-p="an intense, powerful drama">Insane drama</button>
+        <button type="button" class="mood" data-p="a film based on an interesting true story">Interesting true story</button>
+        <button type="button" class="mood" data-p="a surprise: something unexpected that they would still love, outside their usual picks">Surprise me</button>
       </div>
     </div>
     <div class="row">
-      <input type="text" id="similar" placeholder="Similar to this film… e.g. Zodiac" autocomplete="off">
+      <input type="text" id="similar" placeholder="Similar to this film… (type a title)" autocomplete="off">
       <select id="len" aria-label="Runtime">
-        <option value="any length">Any runtime</option>
-        <option value="under 100 minutes">Under 100 min</option>
-        <option value="under 2 hours">Under 2 hours</option>
+        <option value="under 1 hour 40 minutes (100 minutes)">Up to 1h 40</option>
+        <option value="under 2 hours">Up to 2h</option>
+        <option value="under 2.5 hours (150 minutes)">Up to 2h 30</option>
+        <option value="any length" selected>Any length</option>
       </select>
     </div>
     <div class="row"><button id="go" disabled>Recommend films</button></div>

@@ -65,7 +65,7 @@ function parseRSS(xml) {
     const g = t => it.getElementsByTagName(t)[0]?.textContent || "";
     const name = g("letterboxd:filmTitle");
     if (!name) return null;
-    return { name, year: +g("letterboxd:filmYear") || null, rating: +g("letterboxd:memberRating") || null, date: g("letterboxd:watchedDate") };
+    return { name, year: +g("letterboxd:filmYear") || null, rating: +g("letterboxd:memberRating") || null, date: g("letterboxd:watchedDate"), poster: ((g("description").match(/<img[^>]+src="([^"]+)"/) || [])[1] || "") };
   }).filter(Boolean);
   const keys = new Set(), out = [];
   items.sort((a, b) => (b.date || "").localeCompare(a.date || "")).forEach(f => {
@@ -93,7 +93,11 @@ async function loadProfile() {
     let recent = [];
     try { recent = parseRSS(await getText(`https://letterboxd.com/${user}/rss/`)); } catch {}
     if (!recent.length) recent = films.slice(0, 10).map(f => ({ ...f, date: "" }));
-    data = { user, films, watchlist, recent };
+    setLoad("Reading your favourites and this year…");
+    let favs = [], year = null;
+    try { favs = await fetchFavs(user); } catch {}
+    try { year = await fetchYear(user); } catch {}
+    data = { user, films, watchlist, recent, favs, year };
     await store.set({ user, cache: data });
     setLoad("");
     showData();
@@ -107,30 +111,74 @@ async function loadProfile() {
 function setLoad(t, err) { const s = $("loadStatus"); s.textContent = t; s.classList.toggle("err", !!err); }
 function setStatus(t, err) { const s = $("status"); s.textContent = t; s.classList.toggle("err", !!err); }
 
+const parseDoc = h => new DOMParser().parseFromString(h, "text/html");
+
+async function fetchFavs(user) {
+  const doc = parseDoc(await getText("https://letterboxd.com/" + user + "/"));
+  return [...doc.querySelectorAll("#favourites li.griditem")].slice(0, 4).map(li => {
+    const d = li.querySelector("[data-item-name],[data-film-name]") || li;
+    const img = li.querySelector("img");
+    const full = d.dataset.itemName || d.dataset.filmName || (img && img.alt) || "";
+    const m = full.match(/^(.*?)\s*\((\d{4})\)\s*$/);
+    return { name: m ? m[1] : full, year: m ? +m[2] : null, poster: img ? img.src : "" };
+  }).filter(f => f.name);
+}
+
+async function fetchYear(user) {
+  const year = new Date().getFullYear(), byId = new Map();
+  for (let n = 1; n <= 25; n++) {
+    let rows;
+    try { rows = [...parseDoc(await getText("https://letterboxd.com/" + user + "/diary/for/" + year + "/page/" + n + "/")).querySelectorAll("tr.diary-entry-row")]; }
+    catch (e) { if (e.status === 404) break; throw e; }
+    if (!rows.length) break;
+    rows.forEach(tr => {
+      const id = tr.dataset.productionUid || tr.dataset.objectId;
+      const r = tr.querySelector(".col-rating [class*='rated-']");
+      const m = r && r.className.match(/rated-(\d+)/);
+      const rating = m ? +m[1] / 2 : null;
+      const cur = byId.get(id);
+      if (!cur) byId.set(id, { rating }); else if (cur.rating == null && rating != null) cur.rating = rating;
+    });
+    if (rows.length < 50) break;
+  }
+  const rs = [...byId.values()].map(x => x.rating).filter(Boolean);
+  return { year, count: byId.size, rated: rs.length, avg: rs.length ? rs.reduce((s, x) => s + x, 0) / rs.length : null };
+}
+
+function filmCard(f, cls, pick) {
+  const b = document.createElement("button"); b.type = "button"; b.className = cls; b.setAttribute("aria-pressed", "false");
+  if (f.poster) { const im = document.createElement("img"); im.src = f.poster; im.alt = ""; im.loading = "lazy"; im.referrerPolicy = "no-referrer"; b.append(im); }
+  const t = document.createElement("b"); t.textContent = f.name;
+  const s = document.createElement("span"); s.textContent = [f.year, f.date].filter(Boolean).join(" · ");
+  b.append(t, s);
+  if (f.rating) { const i = document.createElement("i"); i.textContent = stars(f.rating); b.append(i); }
+  b.onclick = () => {
+    document.querySelectorAll("." + cls).forEach(x => x.setAttribute("aria-pressed", "false"));
+    b.setAttribute("aria-pressed", "true"); pick(f);
+  };
+  return b;
+}
+
 function showData() {
   const rated = data.films.filter(f => f.rating);
   const avg = rated.length ? (rated.reduce((s, f) => s + f.rating, 0) / rated.length).toFixed(2) : "–";
-  $("stats").innerHTML = `<span class="chip"><b>${data.films.length}</b> films logged</span><span class="chip"><b>${rated.length}</b> rated</span><span class="chip">average <b>${avg}★</b></span><span class="chip"><b>${data.watchlist.length}</b> on watchlist</span>`;
-  $("favsBox").hidden = !rated.length;
-  $("favs").innerHTML = "";
-  [...rated].sort((a, b) => b.rating - a.rating).slice(0, 14).forEach(f => {
-    const s = document.createElement("span"); s.className = "fav"; s.textContent = `${f.name} (${f.year}) `;
-    const i = document.createElement("i"); i.textContent = stars(f.rating); s.append(i); $("favs").append(s);
+  const y = data.year;
+  const tile = (big, small) => '<div class="stat"><b>' + big + '</b><span>' + small + '</span></div>';
+  $("stats").innerHTML = tile(data.films.length.toLocaleString("en"), "films logged") + tile(avg + "★", "average rating, all logged films")
+    + (y ? tile(y.count, "watched in " + y.year) + tile((y.avg ? y.avg.toFixed(2) : "–") + "★", "average rating in " + y.year) : "");
+
+  const favs = (data.favs && data.favs.length) ? data.favs
+    : [...rated].sort((a, b) => b.rating - a.rating).slice(0, 4).map(f => ({ name: f.name, year: f.year, poster: "" }));
+  $("favPanel").hidden = !favs.length;
+  $("favs").innerHTML = ""; $("fsBox").hidden = true;
+  favs.forEach(f => {
+    const mine = data.films.find(x => norm(x.name) === norm(f.name) && (!x.year || !f.year || x.year === f.year));
+    $("favs").append(filmCard({ ...f, rating: mine && mine.rating }, "favcard", x => similarTo(x, ["fsBox", "fsTitle", "fsRecs"], "love")));
   });
+
   $("recentPanel").hidden = false;
   $("recent").innerHTML = ""; $("simBox").hidden = true;
-  data.recent.forEach(f => {
-    const b = document.createElement("button"); b.type = "button"; b.className = "rfilm"; b.setAttribute("aria-pressed", "false");
-    const t = document.createElement("b"); t.textContent = f.name;
-    const s = document.createElement("span"); s.textContent = [f.year, f.date].filter(Boolean).join(" · ");
-    b.append(t, s);
-    if (f.rating) { const i = document.createElement("i"); i.textContent = stars(f.rating); b.append(i); }
-    b.onclick = () => {
-      document.querySelectorAll(".rfilm").forEach(x => x.setAttribute("aria-pressed", "false"));
-      b.setAttribute("aria-pressed", "true"); similarTo(f);
-    };
-    $("recent").append(b);
-  });
+  data.recent.forEach(f => $("recent").append(filmCard(f, "rfilm", x => similarTo(x))));
   updateGo();
 }
 
@@ -193,18 +241,18 @@ Recommend ${n} real feature films they have not seen. Mix well-known and lesser-
 Reply with ONLY a JSON array: [{"title":"","year":2000,"director":"","runtime":100,"why":"","because":[""]}]`;
 }
 
-async function similarTo(f) {
-  $("simBox").hidden = false; $("simTitle").textContent = `Finding films like ${f.name}…`; $("simRecs").innerHTML = "";
+async function similarTo(f, ids = ["simBox", "simTitle", "simRecs"], verb = "watched") {
+  $(ids[0]).hidden = false; $(ids[1]).textContent = `Finding films like ${f.name}…`; $(ids[2]).innerHTML = "";
   const loved = data.films.filter(x => x.rating >= 4).slice(0, 60).map(x => `${x.name} (${x.year}) ${x.rating}`).join("; ");
-  const prompt = `A Letterboxd user just watched ${f.name} (${f.year})${f.rating ? `, rated ${f.rating}/5` : ""}. Their favourites: ${loved || "unknown"}.
+  const prompt = `A Letterboxd user ${verb === "watched" ? "just watched" : "loves"} ${f.name} (${f.year})${f.rating ? `, rated ${f.rating}/5` : ""}. Their favourites: ${loved || "unknown"}.
 NEVER recommend any of these films they have seen: ${seenList()}
 Recommend 7 real films they haven't seen that are most similar to ${f.name}, ordered by similarity. "similarity" is an honest 0-100 score of how close it is in tone, style and themes. "why" is 1-2 plain sentences naming what it shares with ${f.name}.
 Reply with ONLY a JSON array: [{"title":"","year":2000,"director":"","runtime":100,"similarity":85,"why":""}]`;
   try {
     const list = seenFilter(await askClaude(prompt)).slice(0, 5);
-    $("simTitle").textContent = `Because you watched ${f.name}`;
-    renderRecs(list, false, "simRecs");
-  } catch (e) { $("simTitle").textContent = claudeError(e); }
+    $(ids[1]).textContent = `Because you ${verb} ${f.name}`;
+    renderRecs(list, false, ids[2]);
+  } catch (e) { $(ids[1]).textContent = claudeError(e); }
 }
 
 async function recommend(append) {
