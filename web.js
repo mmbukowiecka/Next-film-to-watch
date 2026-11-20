@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const MODEL = "claude-sonnet-5-5";
-const PROXY = "https://YOUR-WORKER.workers.dev"; // set to your Cloudflare Worker URL
+const PROXY = "https://morning-heart-3d02.michalinabukowiecka.workers.dev";
 const store = {
   get: async keys => { const o = {}; for (const k of keys) { try { const v = localStorage.getItem("nftw_" + k); if (v !== null) o[k] = JSON.parse(v); } catch {} } return o; },
   set: async obj => { for (const k in obj) { try { localStorage.setItem("nftw_" + k, JSON.stringify(obj[k])); } catch {} } },
