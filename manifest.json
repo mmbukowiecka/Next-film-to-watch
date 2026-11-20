@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Next film to watch",
+  "version": "1.0.0",
+  "description": "Film recommendations built from your Letterboxd ratings.",
+  "action": { "default_title": "Next film to watch" },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["storage"],
+  "host_permissions": ["https://letterboxd.com/*", "https://api.anthropic.com/*"],
+  "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" }
+}

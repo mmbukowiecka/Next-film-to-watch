@@ -1,0 +1,61 @@
+/* Layout: single column — connect Letterboxd, browse recent films, tune the request, read the shortlist */
+:root{
+  --bg:#f3f1f6; --surface:#ffffff; --fg:#1d1a24; --muted:#6b6478; --line:#dcd6e4;
+  --accent:#d2551f; --accent-fg:#ffffff; --star:#1f8a5b; --chip:#ebe6f1;
+  --display:"Avenir Next","Segoe UI Variable Display","Helvetica Neue",system-ui,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#17141d; --surface:#211d29; --fg:#efeaf5; --muted:#a49cb2; --line:#352f40;
+  --accent:#f07a3f; --accent-fg:#1a1208; --star:#4cc38a; --chip:#2c2636; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:860px;margin:0 auto;padding:40px 16px 64px;display:grid;gap:24px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(2.2rem,6vw,3.4rem);line-height:1;margin:0;letter-spacing:-.02em}
+h1 span{color:var(--accent)}
+h2{font-family:var(--display);font-weight:600;font-size:1.25rem;margin:0}
+.lede{color:var(--muted);max-width:60ch;margin:8px 0 0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;display:grid;gap:14px;min-width:0}
+.panel[hidden]{display:none}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.row.between{justify-content:space-between}
+input,select,textarea{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:9px 11px;min-width:0}
+input[type=text],input[type=password]{flex:1 1 240px}
+textarea{font-size:1.05rem;border-radius:8px;padding:12px 14px;resize:vertical;width:100%}
+button{font:inherit;font-weight:600;border:0;border-radius:6px;padding:10px 18px;background:var(--accent);color:var(--accent-fg);cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+button.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);padding:8px 14px;font-weight:500}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.status{color:var(--muted);font-size:.9rem;min-height:1.4em}
+.status.err{color:var(--accent)}
+.hint{font-size:.85rem;color:var(--muted)}
+summary{cursor:pointer;font-weight:600}
+.stats{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--chip);border-radius:999px;padding:3px 10px;font-size:.82rem}
+.chip b{font-family:var(--mono);font-weight:400}
+.favs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.fav{font-size:.82rem;border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+.fav i{font-style:normal;color:var(--star)}
+.moods{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.mood{background:var(--chip);color:var(--fg);font-weight:400;padding:7px 14px;border-radius:999px}
+.mood[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);font-weight:600}
+.recent{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.rfilm{display:grid;gap:2px;text-align:left;background:var(--bg);color:var(--fg);border:1px solid var(--line);font-weight:400;padding:10px 12px}
+.rfilm b{font-weight:600}
+.rfilm[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.rfilm span{font-family:var(--mono);font-size:.75rem;color:var(--muted)}
+.rfilm i{font-style:normal;color:var(--star);font-size:.8rem}
+.recs{display:grid;gap:0;list-style:none;margin:0;padding:0}
+.rec{display:grid;grid-template-columns:2.4rem 1fr;gap:12px;padding:16px 0;border-top:1px solid var(--line)}
+.rank{font-family:var(--display);font-weight:800;font-size:1.6rem;color:var(--accent);line-height:1}
+.rec h3{font-family:var(--display);font-weight:600;font-size:1.15rem;margin:0}
+.rec h3 small{font-family:var(--mono);font-size:.8rem;color:var(--muted);font-weight:400;margin-left:6px}
+.meta{font-size:.8rem;color:var(--muted);font-family:var(--mono)}
+.why{margin:6px 0 0;max-width:65ch}
+.because{font-size:.85rem;color:var(--muted);margin:4px 0 0}
+.rec a{color:var(--accent);font-size:.85rem}
+.wl{font-size:.72rem;background:var(--star);color:var(--surface);border-radius:4px;padding:1px 6px;margin-left:8px;vertical-align:middle}
+.match{font-family:var(--mono);font-size:.78rem;color:var(--star);margin-left:8px;font-weight:400}
