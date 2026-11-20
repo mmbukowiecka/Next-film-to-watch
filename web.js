@@ -255,9 +255,11 @@ async function findSlug(name, year) {
   return pick ? (pick.dataset.itemSlug || pick.dataset.filmSlug) : null;
 }
 
+const cleanName = n => (n || "").replace(/\s*\(\d{4}\)\s*$/, "");
+
 function detailSeen() {
   const names = new Map();
-  data.films.forEach(f => { const k = norm(f.name); (names.get(k) || names.set(k, []).get(k)).push(f.year); });
+  data.films.forEach(f => { const k = norm(cleanName(f.name)); (names.get(k) || names.set(k, []).get(k)).push(f.year); });
   return d => (names.get(norm(d.title)) || []).some(y => !y || !d.year || Math.abs(y - d.year) <= 1);
 }
 
@@ -327,9 +329,9 @@ async function recommend(append) {
       seeds = [{ slug: s, name: sim, w: 5 }];
     } else {
       seeds = data.films.filter(f => f.slug && f.rating >= 4)
-        .map(f => ({ slug: f.slug, name: f.name, w: f.rating, k: f.rating + Math.random() * 1.2 }))
+        .map(f => ({ slug: f.slug, name: cleanName(f.name), w: f.rating, k: f.rating + Math.random() * 1.2 }))
         .sort((a, b) => b.k - a.k).slice(0, 10);
-      if (!seeds.length) seeds = data.films.filter(f => f.slug).slice(0, 10).map(f => ({ slug: f.slug, name: f.name, w: 4 }));
+      if (!seeds.length) seeds = data.films.filter(f => f.slug).slice(0, 10).map(f => ({ slug: f.slug, name: cleanName(f.name), w: 4 }));
     }
     const lists = await pmap(seeds, s => similarList(s.slug), 5);
     const score = new Map(), because = new Map();
@@ -350,6 +352,21 @@ async function recommend(append) {
     const details = (await pmap(cands.slice(0, limit), getDetails, 8)).filter(d => d && !seenDetail(d) && rtOk(d));
     const hits = d => preds.filter(p => p(d)).length;
     let picks = details.filter(d => hits(d) === preds.length), relaxed = false;
+    const via = new Map();
+    for (let round = 0; round < 2 && picks.length < 6 && preds.length; round++) {
+      const from = (picks.length ? picks : details.filter(d => hits(d) > 0)).slice(0, 6);
+      if (!from.length) break;
+      const more = await pmap(from, d => similarList(d.slug), 5);
+      const known = new Set(details.map(d => d.slug)), fresh = [];
+      more.forEach((l, i) => (l || []).forEach(s => {
+        if (seenSlugs.has(s) || shown.includes(s) || known.has(s) || fresh.some(x => x.s === s)) return;
+        fresh.push({ s, from: from[i].title });
+      }));
+      const nd = (await pmap(fresh.slice(0, 60).map(x => x.s), getDetails, 8)).filter(d => d && !seenDetail(d) && rtOk(d));
+      nd.forEach(d => via.set(d.slug, fresh.find(x => x.s === d.slug).from));
+      details.push(...nd);
+      picks = details.filter(d => hits(d) === preds.length);
+    }
     if (picks.length < 6 && preds.length) {
       relaxed = true;
       picks = picks.concat(details.filter(d => !picks.includes(d) && hits(d) > 0).sort((a, b) => hits(b) - hits(a)));
@@ -358,7 +375,7 @@ async function recommend(append) {
     if (!picks.length) { setStatus("Nothing matched. Try fewer filters or a longer runtime.", true); return; }
     picks.forEach(d => shown.push(d.slug));
     $("out").hidden = false;
-    renderRecs(picks.map(d => ({ ...d, onWatchlist: wl.has(d.slug), because: because.get(d.slug) || [], why: whyOf(d) })), append, "recs");
+    renderRecs(picks.map(d => ({ ...d, onWatchlist: wl.has(d.slug), because: because.get(d.slug) || [], why: whyOf(d) + (via.has(d.slug) ? ". Similar to " + via.get(d.slug) : "") })), append, "recs");
     setStatus(relaxed ? "Few films matched every filter, so some are close matches." : "");
   } catch (e) { setStatus("Couldn't reach Letterboxd. Try again.", true); }
   finally { updateGo(); $("more").disabled = false; }
