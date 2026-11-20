@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Next film to watch</title>
+<link rel="stylesheet" href="web.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Next film <span>to watch</span></h1>
+    <p class="lede">Type your Letterboxd username and get films you haven't seen yet, matched to what you rate highly.</p>
+  </header>
+
+  <section class="panel">
+    <h2>1 · Your Letterboxd</h2>
+    <div class="row">
+      <input type="text" id="user" placeholder="Letterboxd username" value="michalinab" autocomplete="off" spellcheck="false">
+      <button id="load">Load my films</button>
+    </div>
+    <div class="status" id="loadStatus"></div>
+    <div class="stats" id="stats"></div>
+    <div id="favsBox" hidden><div class="label">Your highest-rated films</div><div class="favs" id="favs"></div></div>
+    <details id="keyBox">
+      <summary>Claude API key <span id="keyState" class="hint"></span></summary>
+      <div class="row" style="margin-top:10px">
+        <input type="password" id="key" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+        <button id="saveKey" class="ghost">Save key</button>
+      </div>
+      <p class="hint">Create one at console.anthropic.com → API Keys. It is stored only in this browser and sent only to Anthropic.</p>
+    </details>
+  </section>
+
+  <section class="panel" id="recentPanel" hidden>
+    <div class="row between"><h2>Recently watched</h2><span class="hint">Click a film to find ones like it</span></div>
+    <div class="recent" id="recent"></div>
+    <div id="simBox" hidden><div class="label" id="simTitle"></div><ol class="recs" id="simRecs"></ol></div>
+  </section>
+
+  <section class="panel">
+    <h2>2 · What do you want to watch?</h2>
+    <textarea id="extra" rows="2" placeholder="Describe it in your own words, e.g. 'a stylish 70s thriller with a twist, nothing too gory'"></textarea>
+    <div>
+      <div class="label">Pick one or more</div>
+      <div class="moods" id="moods">
+        <button type="button" class="mood" data-p="a must-watch film widely considered essential that they haven't seen yet">Must-watch I haven't seen</button>
+        <button type="button" class="mood" data-p="a classic released before 1980">Pre-1980 classic</button>
+        <button type="button" class="mood" data-p="a thriller">Thriller</button>
+        <button type="button" class="mood" data-p="something weird and surprising">Weird &amp; surprising</button>
+        <button type="button" class="mood" data-p="a horror film">Horror</button>
+        <button type="button" class="mood" data-p="a film celebrated for beautiful cinematography">Beautiful cinematography</button>
+        <button type="button" class="mood" data-p="an award winner (Oscar, Palme d'Or, Golden Lion, Golden Bear or similar); name the award in the why">Award winner</button>
+        <button type="button" class="mood" data-p="only films with a Letterboxd average rating above 4.0 out of 5">Rated 4★+ on Letterboxd</button>
+      </div>
+    </div>
+    <div class="row">
+      <input type="text" id="similar" placeholder="Similar to this film… e.g. Zodiac" autocomplete="off">
+      <select id="len" aria-label="Runtime">
+        <option value="any length">Any runtime</option>
+        <option value="under 100 minutes">Under 100 min</option>
+        <option value="under 2 hours">Under 2 hours</option>
+      </select>
+    </div>
+    <div class="row"><button id="go" disabled>Recommend films</button></div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <section class="panel" id="out" hidden>
+    <div class="row between"><h2>Your shortlist</h2><button class="ghost" id="more">Show 6 more</button></div>
+    <ol class="recs" id="recs"></ol>
+  </section>
+</div>
+<script src="web.js"></script>
+</body>
+</html>
