@@ -24,14 +24,7 @@
     </div>
     <div class="status" id="loadStatus"></div>
     <div class="stats" id="stats"></div>
-    <details id="keyBox">
-      <summary>Claude API key <span id="keyState" class="hint"></span></summary>
-      <div class="row" style="margin-top:10px">
-        <input type="password" id="key" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
-        <button id="saveKey" class="ghost">Save key</button>
-      </div>
-      <p class="hint">Create one at console.anthropic.com → API Keys. It is stored only in this browser and sent only to Anthropic.</p>
-    </details>
+    
   </section>
 
   <section class="panel" id="favPanel" hidden>
@@ -49,6 +42,7 @@
   <section class="panel">
     <h2>What do you want to watch?</h2>
     <textarea id="extra" rows="3" placeholder="Describe it in your own words, whatever is in your head"></textarea>
+    <p class="hint">I pick up keywords in your description, like horror, comedy, sci-fi, thriller, romance, war, 70s or 90s.</p>
     <div>
       <div class="label">Pick one or more</div>
       <div class="moods" id="moods">
@@ -70,10 +64,10 @@
     <div class="row">
       <input type="text" id="similar" placeholder="Similar to this film… (type a title)" autocomplete="off">
       <select id="len" aria-label="Runtime">
-        <option value="under 1 hour 40 minutes (100 minutes)">Up to 1h 40</option>
-        <option value="under 2 hours">Up to 2h</option>
-        <option value="under 2.5 hours (150 minutes)">Up to 2h 30</option>
-        <option value="any length" selected>Any length</option>
+        <option value="100">Up to 1h 40</option>
+        <option value="120">Up to 2h</option>
+        <option value="150">Up to 2h 30</option>
+        <option value="0" selected>Any length</option>
       </select>
     </div>
     <div class="row"><button id="go" disabled>Recommend films</button></div>

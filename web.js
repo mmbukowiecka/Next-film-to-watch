@@ -37,7 +37,7 @@ function parseFilms(html) {
       const m = r && r.className.match(/rated-(\d+)/);
       if (m) rating = +m[1] / 2;
     }
-    if (name) out.push({ name, year, rating: rating || null });
+    if (name) out.push({ name, year, rating: rating || null, slug });
   });
   return out;
 }
@@ -65,7 +65,7 @@ function parseRSS(xml) {
     const g = t => it.getElementsByTagName(t)[0]?.textContent || "";
     const name = g("letterboxd:filmTitle");
     if (!name) return null;
-    return { name, year: +g("letterboxd:filmYear") || null, rating: +g("letterboxd:memberRating") || null, date: g("letterboxd:watchedDate"), liked: g("letterboxd:memberLike") === "Yes", poster: ((g("description").match(/<img[^>]+src="([^"]+)"/) || [])[1] || "") };
+    return { name, year: +g("letterboxd:filmYear") || null, rating: +g("letterboxd:memberRating") || null, date: g("letterboxd:watchedDate"), liked: g("letterboxd:memberLike") === "Yes", slug: ((g("link").match(/\/film\/([^/]+)\//) || [])[1] || ""), poster: ((g("description").match(/<img[^>]+src="([^"]+)"/) || [])[1] || "") };
   }).filter(Boolean);
   const keys = new Set(), out = [];
   items.sort((a, b) => (b.date || "").localeCompare(a.date || "")).forEach(f => {
@@ -207,89 +207,160 @@ function showData() {
   updateGo();
 }
 
-/* ---------- Claude ---------- */
-async function askClaude(prompt) {
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({ model: MODEL, max_tokens: 2500, messages: [{ role: "user", content: prompt }] }),
+/* ---------- Recommendations from Letterboxd only (no AI, no API key) ---------- */
+const detailCache = new Map();
+
+async function pmap(items, fn, limit = 6) {
+  const out = new Array(items.length); let i = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length) { const k = i++; try { out[k] = await fn(items[k], k); } catch { out[k] = null; } }
+  }));
+  return out;
+}
+
+function getDetails(slug) {
+  if (detailCache.has(slug)) return detailCache.get(slug);
+  const p = (async () => {
+    const doc = parseDoc(await getText("https://letterboxd.com/film/" + slug + "/"));
+    const ld = JSON.parse(doc.querySelector('script[type="application/ld+json"]').textContent.replace(/^\s*\/\*\s*<!\[CDATA\[\s*\*\/|\/\*\s*\]\]>\s*\*\/\s*$/g, ""));
+    const foot = (doc.querySelector(".text-footer") || {}).textContent || "";
+    const rm = foot.match(/(\d+)\s*mins?/);
+    const agg = ld.aggregateRating || {};
+    return {
+      slug, title: ld.name, year: parseInt(String(ld.dateCreated || "").slice(0, 4)) || null,
+      director: (ld.director || []).map(x => x.name).slice(0, 2).join(", "), runtime: rm ? +rm[1] : null,
+      rating: agg.ratingValue || null, count: agg.ratingCount || 0, genres: ld.genre || [],
+      poster: typeof ld.image === "string" ? ld.image : "",
+    };
+  })();
+  detailCache.set(slug, p);
+  p.catch(() => detailCache.delete(slug));
+  return p;
+}
+
+async function similarList(slug) {
+  const doc = parseDoc(await getText("https://letterboxd.com/film/" + slug + "/similar/"));
+  const out = [], seen = new Set();
+  doc.querySelectorAll("[data-item-slug],[data-film-slug]").forEach(el => {
+    const s = el.dataset.itemSlug || el.dataset.filmSlug;
+    if (s && s !== slug && !seen.has(s)) { seen.add(s); out.push(s); }
   });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw Object.assign(new Error(j.error?.message || "http " + r.status), { status: r.status });
-  const text = (j.content || []).map(c => c.text || "").join("");
-  const m = text.match(/\[[\s\S]*\]/);
-  if (!m) throw new Error("bad reply");
-  return JSON.parse(m[0]);
+  return out;
 }
 
-function claudeError(e) {
-  if (e.status === 401) return "Your Claude API key was rejected. Open “Claude API key” above and check it.";
-  if (e.status === 429) return "Too many requests. Wait a minute and try again.";
-  if (/credit/i.test(e.message)) return "Your Claude API account has no credit left. Add some at console.anthropic.com → Billing.";
-  return "Something went wrong getting recommendations. Try again.";
+async function findSlug(name, year) {
+  const doc = parseDoc(await getText("https://letterboxd.com/s/search/films/" + encodeURIComponent(name) + "/"));
+  const els = [...doc.querySelectorAll("[data-item-slug],[data-film-slug]")];
+  const pick = (year && els.find(e => (e.dataset.itemFullDisplayName || "").includes("(" + year + ")"))) || els[0];
+  return pick ? (pick.dataset.itemSlug || pick.dataset.filmSlug) : null;
 }
 
-function seenFilter(list) {
-  const years = new Map();
-  data.films.forEach(f => { const k = norm(f.name); (years.get(k) || years.set(k, []).get(k)).push(f.year); });
-  const wl = new Set(data.watchlist.map(f => norm(f.name)));
-  return list.filter(r => {
-    if (!r || !r.title) return false;
-    const ys = years.get(norm(r.title));
-    return !(ys && (!r.year || ys.some(y => !y || Math.abs(y - r.year) <= 1)));
-  }).map(r => ({ ...r, onWatchlist: wl.has(norm(r.title)) }));
+function detailSeen() {
+  const names = new Map();
+  data.films.forEach(f => { const k = norm(f.name); (names.get(k) || names.set(k, []).get(k)).push(f.year); });
+  return d => (names.get(norm(d.title)) || []).some(y => !y || !d.year || Math.abs(y - d.year) <= 1);
 }
 
-function seenList() {
-  return [...new Set(data.films.map(f => `${f.name} (${f.year})`))].slice(0, 600).join("; ");
+const G = (m, ...gs) => gs.some(g => m.genres.includes(g));
+const MOODS = {
+  "Classics yet to watch": m => m.rating >= 4 && m.count >= 20000,
+  "Old classic (pre-1980)": m => m.year && m.year < 1980,
+  "Mind-puzzling thriller": m => G(m, "Thriller", "Mystery"),
+  "Weird & surprising": m => G(m, "Fantasy", "Science Fiction", "Horror", "Mystery") && m.count < 250000,
+  "Gory horror": m => G(m, "Horror"),
+  "Indie vibes": m => m.count < 80000 && m.rating >= 3.4,
+  "Cinema history revolutionary": m => m.year && m.year < 1975 && m.rating >= 3.8,
+  "Insane cinematography": m => m.rating >= 4,
+  "Award winning (Oscars preferred)": m => m.rating >= 3.9 && m.count >= 100000,
+  "Rated 4+": m => m.rating >= 4,
+  "Insane drama": m => G(m, "Drama") && m.rating >= 3.8,
+  "Interesting true story": m => G(m, "History", "Crime", "Documentary", "War") && m.rating >= 3.6,
+  "Surprise me": () => true,
+};
+const WORDS = [
+  [/horror|scary|creepy/i, "Horror"], [/thriller|suspense|tense/i, "Thriller"], [/comed|funny|laugh/i, "Comedy"],
+  [/romanc|love story/i, "Romance"], [/sci-?fi|science fiction|space|futur/i, "Science Fiction"], [/anim|anime|cartoon/i, "Animation"],
+  [/\bwar\b/i, "War"], [/western|cowboy/i, "Western"], [/musical|music/i, "Music"], [/documentar/i, "Documentary"],
+  [/crime|gangster|heist/i, "Crime"], [/mystery|detective|whodunit/i, "Mystery"], [/fantasy|magic/i, "Fantasy"],
+  [/drama/i, "Drama"], [/histor|period/i, "History"], [/family|kids/i, "Family"],
+];
+
+function textPreds(text) {
+  const preds = [];
+  const gs = WORDS.filter(([re]) => re.test(text)).map(([, g]) => g);
+  if (gs.length) preds.push(m => gs.some(g => m.genres.includes(g)));
+  const dm = text.match(/\b(19|20)?(\d)0s\b/);
+  if (dm) { const start = +((dm[1] || (+dm[2] >= 3 ? "19" : "20")) + dm[2] + "0"); preds.push(m => m.year && m.year >= start && m.year < start + 10); }
+  return preds;
 }
 
-function buildPrompt(n) {
-  const rated = data.films.filter(f => f.rating).sort((a, b) => b.rating - a.rating);
-  const fmt = f => `${f.name} (${f.year}) ${f.rating}`;
-  const loved = rated.filter(f => f.rating >= 4).slice(0, 100).map(fmt).join("; ");
-  const disliked = rated.filter(f => f.rating <= 2.5).slice(-50).map(fmt).join("; ");
-  const wl = data.watchlist.slice(0, 150).map(f => `${f.name} (${f.year})`).join("; ");
-  const moods = [...document.querySelectorAll('.mood[aria-pressed="true"]')].map(b => b.dataset.p).join(" AND ");
-  const sim = $("similar").value.trim();
-  return `You are a film critic recommending movies to a Letterboxd user. Ratings are out of 5.
-LOVED (4+): ${loved || "none"}
-DISLIKED (2.5 or less): ${disliked || "none"}
-SOME FILMS THEY HAVE SEEN, never recommend these: ${seenList()}
-ALSO DON'T REPEAT: ${shown.join("; ") || "none"}
-THEIR WATCHLIST (good candidates): ${wl || "none"}
-Request: ${moods || "anything they'd love"}${sim ? `; similar in feel to "${sim}" (mention it in because)` : ""}; runtime ${$("len").value}. ${$("extra").value}
-Recommend ${n} real feature films they have not seen. Mix well-known and lesser-known picks. Each "why" is 1-2 plain sentences about what they would like, specific to their taste. "because" lists 1-3 films from LOVED that it connects to.
-Reply with ONLY a JSON array: [{"title":"","year":2000,"director":"","runtime":100,"why":"","because":[""]}]`;
+function whyOf(d) {
+  return [d.genres.slice(0, 3).join(" · "), d.rating ? "rated " + d.rating.toFixed(1) + "★ by Letterboxd members" : ""].filter(Boolean).join(", ");
 }
 
 async function similarTo(f, ids = ["simBox", "simTitle", "simRecs"], verb = "watched") {
-  $(ids[0]).hidden = false; $(ids[1]).textContent = `Finding films like ${f.name}…`; $(ids[2]).innerHTML = "";
-  const loved = data.films.filter(x => x.rating >= 4).slice(0, 60).map(x => `${x.name} (${x.year}) ${x.rating}`).join("; ");
-  const prompt = `A Letterboxd user ${verb === "watched" ? "just watched" : "loves"} ${f.name} (${f.year})${f.rating ? `, rated ${f.rating}/5` : ""}. Their favourites: ${loved || "unknown"}.
-NEVER recommend any of these films they have seen: ${seenList()}
-Recommend 7 real films they haven't seen that are most similar to ${f.name}, ordered by similarity. "similarity" is an honest 0-100 score of how close it is in tone, style and themes. "why" is 1-2 plain sentences naming what it shares with ${f.name}.
-Reply with ONLY a JSON array: [{"title":"","year":2000,"director":"","runtime":100,"similarity":85,"why":""}]`;
+  $(ids[0]).hidden = false; $(ids[1]).textContent = "Finding films like " + f.name + "…"; $(ids[2]).innerHTML = "";
   try {
-    const list = seenFilter(await askClaude(prompt)).slice(0, 5);
-    $(ids[1]).textContent = `Because you ${verb} ${f.name}`;
-    renderRecs(list, false, ids[2]);
-  } catch (e) { $(ids[1]).textContent = claudeError(e); }
+    const slug = f.slug || await findSlug(f.name, f.year);
+    if (!slug) throw new Error("nofilm");
+    const seenSlugs = new Set(data.films.map(x => x.slug).filter(Boolean)), seenDetail = detailSeen();
+    const list = (await similarList(slug)).filter(s => !seenSlugs.has(s)).slice(0, 14);
+    const details = (await pmap(list, getDetails, 7)).filter(d => d && !seenDetail(d)).slice(0, 5);
+    $(ids[1]).textContent = "Because you " + verb + " " + f.name;
+    renderRecs(details.map(d => ({ ...d, why: whyOf(d) })), false, ids[2]);
+  } catch (e) { $(ids[1]).textContent = "Couldn't find similar films right now. Try again."; }
 }
 
 async function recommend(append) {
   $("go").disabled = true; $("more").disabled = true;
-  setStatus("Reading your log and picking films…");
   try {
-    const fresh = seenFilter(await askClaude(buildPrompt(8))).slice(0, 6);
-    shown.push(...fresh.map(r => `${r.title} (${r.year})`));
+    if (!data.films.some(f => f.slug)) { setStatus("Press “Load my films” once more so I can read your film links.", true); return; }
+    setStatus("Finding films people with your taste love…");
+    const seenSlugs = new Set(data.films.map(f => f.slug).filter(Boolean));
+    const seenDetail = detailSeen();
+    const wl = new Set((data.watchlist || []).map(f => f.slug).filter(Boolean));
+    const sim = $("similar").value.trim();
+    let seeds;
+    if (sim) {
+      const s = await findSlug(sim, null);
+      if (!s) { setStatus("Couldn't find “" + sim + "” on Letterboxd.", true); return; }
+      seeds = [{ slug: s, name: sim, w: 5 }];
+    } else {
+      seeds = data.films.filter(f => f.slug && f.rating >= 4)
+        .map(f => ({ slug: f.slug, name: f.name, w: f.rating, k: f.rating + Math.random() * 1.2 }))
+        .sort((a, b) => b.k - a.k).slice(0, 10);
+      if (!seeds.length) seeds = data.films.filter(f => f.slug).slice(0, 10).map(f => ({ slug: f.slug, name: f.name, w: 4 }));
+    }
+    const lists = await pmap(seeds, s => similarList(s.slug), 5);
+    const score = new Map(), because = new Map();
+    lists.forEach((l, i) => (l || []).forEach((slug, r) => {
+      if (seenSlugs.has(slug) || shown.includes(slug)) return;
+      score.set(slug, (score.get(slug) || 0) + seeds[i].w / (1 + r / 15));
+      const b = because.get(slug) || [];
+      if (b.length < 2 && !b.includes(seeds[i].name)) b.push(seeds[i].name);
+      because.set(slug, b);
+    }));
+    const moods = [...document.querySelectorAll('.mood[aria-pressed="true"]')].map(b => b.textContent.trim());
+    const preds = moods.map(k => MOODS[k]).filter(Boolean).concat(textPreds($("extra").value));
+    const maxRt = +$("len").value || 0;
+    const rtOk = m => !maxRt || !m.runtime || m.runtime <= maxRt;
+    let cands = [...score.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0]);
+    if (moods.includes("Surprise me")) cands = cands.slice(0, 50).sort(() => Math.random() - 0.5);
+    const limit = (preds.length || maxRt) ? 60 : 14;
+    const details = (await pmap(cands.slice(0, limit), getDetails, 8)).filter(d => d && !seenDetail(d) && rtOk(d));
+    const hits = d => preds.filter(p => p(d)).length;
+    let picks = details.filter(d => hits(d) === preds.length), relaxed = false;
+    if (picks.length < 6 && preds.length) {
+      relaxed = true;
+      picks = picks.concat(details.filter(d => !picks.includes(d) && hits(d) > 0).sort((a, b) => hits(b) - hits(a)));
+    }
+    picks = picks.slice(0, 6);
+    if (!picks.length) { setStatus("Nothing matched. Try fewer filters or a longer runtime.", true); return; }
+    picks.forEach(d => shown.push(d.slug));
     $("out").hidden = false;
-    renderRecs(fresh, append, "recs");
-    setStatus("");
-  } catch (e) { setStatus(claudeError(e), true); }
+    renderRecs(picks.map(d => ({ ...d, onWatchlist: wl.has(d.slug), because: because.get(d.slug) || [], why: whyOf(d) })), append, "recs");
+    setStatus(relaxed ? "Few films matched every filter, so some are close matches." : "");
+  } catch (e) { setStatus("Couldn't reach Letterboxd. Try again.", true); }
   finally { updateGo(); $("more").disabled = false; }
 }
 
@@ -299,26 +370,23 @@ function renderRecs(list, append, target) {
   const start = ol.children.length;
   list.forEach((r, k) => {
     const li = document.createElement("li"); li.className = "rec";
-    li.innerHTML = `<div class="rank"></div><div><h3></h3><div class="meta"></div><p class="why"></p><p class="because"></p><a target="_blank" rel="noopener">Open on Letterboxd ↗</a></div>`;
+    li.innerHTML = '<div class="rank"></div><img class="rp" alt=""><div><h3></h3><div class="meta"></div><p class="why"></p><p class="because"></p><a target="_blank" rel="noopener">Open on Letterboxd ↗</a></div>';
     li.querySelector(".rank").textContent = start + k + 1;
+    const im = li.querySelector(".rp");
+    if (r.poster) { im.src = r.poster; im.referrerPolicy = "no-referrer"; } else im.remove();
     const h = li.querySelector("h3"); h.textContent = r.title;
     const sm = document.createElement("small"); sm.textContent = r.year || ""; h.append(sm);
-    if (r.similarity) { const m = document.createElement("span"); m.className = "match"; m.textContent = r.similarity + "% similar"; h.append(m); }
     if (r.onWatchlist) { const w = document.createElement("span"); w.className = "wl"; w.textContent = "On your watchlist"; h.append(w); }
     li.querySelector(".meta").textContent = [r.director, r.runtime && r.runtime + " min"].filter(Boolean).join(" · ");
     li.querySelector(".why").textContent = r.why || "";
-    li.querySelector(".because").textContent = r.because?.length ? "Because you rated highly: " + r.because.join(", ") : "";
-    li.querySelector("a").href = "https://letterboxd.com/search/films/" + encodeURIComponent(r.title + " " + (r.year || "")) + "/";
+    li.querySelector(".because").textContent = r.because && r.because.length ? "Because you rated highly: " + r.because.join(", ") : "";
+    li.querySelector("a").href = "https://letterboxd.com/film/" + r.slug + "/";
     ol.append(li);
   });
 }
 
 /* ---------- Wiring ---------- */
-function updateGo() {
-  $("go").disabled = !(data && apiKey);
-  $("keyState").textContent = apiKey ? "· saved" : "· needed for recommendations";
-  if (!apiKey) $("keyBox").open = true;
-}
+function updateGo() { $("go").disabled = !data; }
 
 document.querySelectorAll(".mood").forEach(b => {
   b.setAttribute("aria-pressed", "false");
@@ -328,17 +396,9 @@ $("load").onclick = loadProfile;
 $("user").addEventListener("keydown", e => { if (e.key === "Enter") loadProfile(); });
 $("go").onclick = () => { shown = []; recommend(false); };
 $("more").onclick = () => recommend(true);
-$("saveKey").onclick = async () => {
-  apiKey = $("key").value.trim();
-  await store.set({ apiKey });
-  $("key").value = apiKey ? "•".repeat(12) : "";
-  updateGo();
-};
 
 (async () => {
-  const s = await store.get(["apiKey", "user", "cache"]);
-  apiKey = s.apiKey || "";
-  if (apiKey) $("key").value = "•".repeat(12);
+  const s = await store.get(["user", "cache"]);
   if (s.user) $("user").value = s.user;
   if (s.cache) { data = s.cache; showData(); }
   updateGo();
