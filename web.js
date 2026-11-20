@@ -70,7 +70,7 @@ function parseRSS(xml) {
   const keys = new Set(), out = [];
   items.sort((a, b) => (b.date || "").localeCompare(a.date || "")).forEach(f => {
     const k = f.name + f.year;
-    if (!keys.has(k) && out.length < 10) { keys.add(k); out.push(f); }
+    if (!keys.has(k) && out.length < 20) { keys.add(k); out.push(f); }
   });
   return out;
 }
@@ -92,7 +92,7 @@ async function loadProfile() {
     try { watchlist = await fetchAllPages(`${user}/watchlist`, 15, () => {}); } catch {}
     let recent = [];
     try { recent = parseRSS(await getText(`https://letterboxd.com/${user}/rss/`)); } catch {}
-    if (!recent.length) recent = films.slice(0, 10).map(f => ({ ...f, date: "" }));
+    if (!recent.length) recent = films.slice(0, 20).map(f => ({ ...f, date: "" }));
     setLoad("Reading your favourites and this year…");
     let favs = [], year = null;
     try { favs = await fetchFavs(user); } catch {}
@@ -265,18 +265,20 @@ function detailSeen() {
 
 const G = (m, ...gs) => gs.some(g => m.genres.includes(g));
 const MOODS = {
-  "Classics yet to watch": m => m.rating >= 4 && m.count >= 20000,
-  "Old classic (pre-1980)": m => m.year && m.year < 1980,
-  "Mind-puzzling thriller": m => G(m, "Thriller", "Mystery"),
-  "Weird & surprising": m => G(m, "Fantasy", "Science Fiction", "Horror", "Mystery") && m.count < 250000,
+  "Classics yet to see": m => m.rating >= 4 && m.count >= 20000,
+  "Old classics": m => m.year && m.year < 1980,
+  "Cinematography": m => m.rating >= 4,
+  "Award winning": m => m.rating >= 3.9 && m.count >= 100000,
+  "Revolutionary / cinema history": m => m.year && m.year < 1975 && m.rating >= 3.8,
+  "Indie": m => m.count < 80000 && m.rating >= 3.4,
+  "Drama": m => G(m, "Drama") && m.rating >= 3.6,
+  "Weird & unexpected": m => G(m, "Fantasy", "Science Fiction", "Horror", "Mystery") && m.count < 250000,
   "Gory horror": m => G(m, "Horror"),
-  "Indie vibes": m => m.count < 80000 && m.rating >= 3.4,
-  "Cinema history revolutionary": m => m.year && m.year < 1975 && m.rating >= 3.8,
-  "Insane cinematography": m => m.rating >= 4,
-  "Award winning (Oscars preferred)": m => m.rating >= 3.9 && m.count >= 100000,
+  "Thriller": m => G(m, "Thriller"),
+  "Rated 3.5+": m => m.rating >= 3.5,
   "Rated 4+": m => m.rating >= 4,
-  "Insane drama": m => G(m, "Drama") && m.rating >= 3.8,
-  "Interesting true story": m => G(m, "History", "Crime", "Documentary", "War") && m.rating >= 3.6,
+  "Based on a true story": m => G(m, "History", "Crime", "Documentary", "War") && m.rating >= 3.6,
+  "Documentary": m => G(m, "Documentary"),
   "Surprise me": () => true,
 };
 const WORDS = [
@@ -387,6 +389,7 @@ function renderRecs(list, append, target) {
   const start = ol.children.length;
   list.forEach((r, k) => {
     const li = document.createElement("li"); li.className = "rec";
+    li.dataset.rating = r.rating || 0;
     li.innerHTML = '<div class="rank"></div><img class="rp" alt=""><div><h3></h3><div class="meta"></div><p class="why"></p><p class="because"></p><a target="_blank" rel="noopener">Open on Letterboxd ↗</a></div>';
     li.querySelector(".rank").textContent = start + k + 1;
     const im = li.querySelector(".rp");
@@ -400,6 +403,7 @@ function renderRecs(list, append, target) {
     li.querySelector("a").href = "https://letterboxd.com/film/" + r.slug + "/";
     ol.append(li);
   });
+  if (target === "recs") applyRecFilter();
 }
 
 /* ---------- Wiring ---------- */
@@ -420,3 +424,27 @@ $("more").onclick = () => recommend(true);
   if (s.cache) { data = s.cache; showData(); }
   updateGo();
 })();
+
+let recMin = 0;
+function applyRecFilter() {
+  const items = [...document.querySelectorAll("#recs .rec")];
+  let n = 0;
+  items.forEach(li => { const ok = Number(li.dataset.rating) >= recMin; li.hidden = !ok; if (ok) n++; });
+  const none = document.getElementById("recNone");
+  if (none) none.hidden = n > 0 || !items.length;
+}
+document.querySelectorAll(".rf").forEach(btn => btn.addEventListener("click", () => {
+  recMin = Number(btn.dataset.min);
+  document.querySelectorAll(".rf").forEach(x => x.setAttribute("aria-pressed", String(x === btn)));
+  applyRecFilter();
+}));
+document.getElementById("clear").addEventListener("click", () => {
+  document.getElementById("recs").innerHTML = "";
+  document.getElementById("out").hidden = true;
+  shown = [];
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+document.querySelectorAll(".scrollbtn").forEach(btn => btn.addEventListener("click", () => {
+  const r = document.getElementById("recent");
+  r.scrollBy({ left: Number(btn.dataset.dir) * r.clientWidth * 0.8, behavior: "smooth" });
+}));

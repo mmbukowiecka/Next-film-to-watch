@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Next film to watch</title>
+<title>Next film to watch?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,400;1,9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap" rel="stylesheet">
@@ -12,8 +12,8 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>Next film <span>to watch</span></h1>
-    <p class="lede">Type your Letterboxd username and get films you haven't seen yet, matched to what you rate highly.</p>
+    <h1>Next film <span>to watch?</span></h1>
+    <p class="lede">Type your Letterboxd username and get films you have not seen, matched to your taste.</p>
   </header>
 
   <section class="panel">
@@ -28,13 +28,13 @@
   </section>
 
   <section class="panel" id="favPanel" hidden>
-    <div class="row between"><h2>Top 4</h2><span class="hint">Click one to find films you haven't seen that feel similar</span></div>
+    <div class="row between"><h2>Favourite films</h2><span class="hint">Click one to find films you haven't seen that feel similar</span></div>
     <div class="favgrid" id="favs"></div>
     <div id="fsBox" hidden><div class="label" id="fsTitle"></div><ol class="recs" id="fsRecs"></ol></div>
   </section>
 
   <section class="panel" id="recentPanel" hidden>
-    <div class="row between"><h2>Recently watched</h2><span class="hint">Click a film to find ones like it</span></div>
+    <div class="row between"><h2>Recently watched</h2><span class="hint">Scroll sideways to see your last 20 · click a film to find ones like it</span><span class="sb"><button type="button" class="ghost scrollbtn" data-dir="-1" aria-label="Scroll left">&lsaquo;</button><button type="button" class="ghost scrollbtn" data-dir="1" aria-label="Scroll right">&rsaquo;</button></span></div>
     <div class="recent" id="recent"></div>
     <div id="simBox" hidden><div class="label" id="simTitle"></div><ol class="recs" id="simRecs"></ol></div>
   </section>
@@ -45,21 +45,7 @@
     <p class="hint">I pick up keywords in your description, like horror, comedy, sci-fi, thriller, romance, war, 70s or 90s.</p>
     <div>
       <div class="label">Pick one or more</div>
-      <div class="moods" id="moods">
-        <button type="button" class="mood" data-p="a must-watch classic widely considered essential that they haven't seen yet">Classics yet to watch</button>
-        <button type="button" class="mood" data-p="a classic released before 1980">Old classic (pre-1980)</button>
-        <button type="button" class="mood" data-p="a mind-puzzling thriller with twists that keep you guessing">Mind-puzzling thriller</button>
-        <button type="button" class="mood" data-p="something weird and surprising">Weird &amp; surprising</button>
-        <button type="button" class="mood" data-p="a gory horror film">Gory horror</button>
-        <button type="button" class="mood" data-p="a film with indie vibes: small-scale, independent and author-driven">Indie vibes</button>
-        <button type="button" class="mood" data-p="a film that was revolutionary in cinema history, influential and changed the medium">Cinema history revolutionary</button>
-        <button type="button" class="mood" data-p="a film celebrated for insane, beautiful cinematography">Insane cinematography</button>
-        <button type="button" class="mood" data-p="an award-winning film, preferably an Oscar winner; name the award in the why">Award winning (Oscars preferred)</button>
-        <button type="button" class="mood" data-p="only films with a Letterboxd average rating of 4.0 out of 5 or higher">Rated 4+</button>
-        <button type="button" class="mood" data-p="an intense, powerful drama">Insane drama</button>
-        <button type="button" class="mood" data-p="a film based on an interesting true story">Interesting true story</button>
-        <button type="button" class="mood" data-p="a surprise: something unexpected that they would still love, outside their usual picks">Surprise me</button>
-      </div>
+      <div class="moods" id="moods"><div class="moodrow"><button type="button" class="mood" data-p="Classics yet to see">Classics yet to see</button><button type="button" class="mood" data-p="Old classics">Old classics</button><button type="button" class="mood" data-p="Cinematography">Cinematography</button><button type="button" class="mood" data-p="Award winning">Award winning</button></div><div class="moodrow"><button type="button" class="mood" data-p="Revolutionary / cinema history">Revolutionary / cinema history</button><button type="button" class="mood" data-p="Indie">Indie</button><button type="button" class="mood" data-p="Drama">Drama</button><button type="button" class="mood" data-p="Weird &amp; unexpected">Weird &amp; unexpected</button><button type="button" class="mood" data-p="Gory horror">Gory horror</button><button type="button" class="mood" data-p="Thriller">Thriller</button></div><div class="moodrow"><button type="button" class="mood" data-p="Rated 3.5+">Rated 3.5+</button><button type="button" class="mood" data-p="Rated 4+">Rated 4+</button><button type="button" class="mood" data-p="Based on a true story">Based on a true story</button><button type="button" class="mood" data-p="Documentary">Documentary</button><button type="button" class="mood" data-p="Surprise me">Surprise me</button></div></div>
     </div>
     <div class="row">
       <input type="text" id="similar" placeholder="Similar to this film… (type a title)" autocomplete="off">
@@ -75,7 +61,8 @@
   </section>
 
   <section class="panel" id="out" hidden>
-    <div class="row between"><h2>Your shortlist</h2><button class="ghost" id="more">Show 6 more</button></div>
+    <div class="row between"><h2>Your shortlist</h2><span class="rfs"><button type="button" class="ghost rf" data-min="0" aria-pressed="true">All</button><button type="button" class="ghost rf" data-min="3.5" aria-pressed="false">3.5&#9733;+</button><button type="button" class="ghost rf" data-min="4" aria-pressed="false">4&#9733;+</button></span><span><button class="ghost" id="more">Show 6 more</button> <button class="ghost" id="clear">Clear recommendations</button></span></div>
+    <p class="hint" id="recNone" hidden>No films here reach that rating. Try All.</p>
     <ol class="recs" id="recs"></ol>
   </section>
 </div>
