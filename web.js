@@ -115,13 +115,25 @@ const parseDoc = h => new DOMParser().parseFromString(h, "text/html");
 
 async function fetchFavs(user) {
   const doc = parseDoc(await getText("https://letterboxd.com/" + user + "/"));
-  return [...doc.querySelectorAll("#favourites li.griditem")].slice(0, 4).map(li => {
+  const list = [...doc.querySelectorAll("#favourites li.griditem")].slice(0, 4).map(li => {
     const d = li.querySelector("[data-item-name],[data-film-name]") || li;
     const img = li.querySelector("img");
     const full = d.dataset.itemName || d.dataset.filmName || (img && img.alt) || "";
     const m = full.match(/^(.*?)\s*\((\d{4})\)\s*$/);
-    return { name: m ? m[1] : full, year: m ? +m[2] : null, poster: img ? img.src : "" };
+    return { name: m ? m[1] : full, year: m ? +m[2] : null, slug: d.dataset.itemSlug || d.dataset.filmSlug || "", poster: "" };
   }).filter(f => f.name);
+  await Promise.all(list.map(async f => { f.poster = await filmPoster(f.slug); }));
+  return list;
+}
+
+async function filmPoster(slug) {
+  if (!slug) return "";
+  try {
+    const doc = parseDoc(await getText("https://letterboxd.com/film/" + slug + "/"));
+    const ld = doc.querySelector('script[type="application/ld+json"]');
+    const j = JSON.parse(ld.textContent.replace(/^\s*\/\*\s*<!\[CDATA\[\s*\*\/|\/\*\s*\]\]>\s*\*\/\s*$/g, ""));
+    return typeof j.image === "string" ? j.image : "";
+  } catch { return ""; }
 }
 
 async function fetchYear(user) {
