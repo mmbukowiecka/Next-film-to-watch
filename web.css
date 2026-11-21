@@ -155,3 +155,18 @@ select:hover{background-color:#566680!important}
 
 #surprise{background:#e5383b!important;color:#fff!important}
 #surprise:hover:not(:disabled){background:#f0575a!important}
+
+/* consolidated */
+.mood[hidden]{display:none!important}
+#len,#decade{width:190px!important;min-width:190px!important;flex:0 0 190px}
+#extra{display:block}
+#extra ~ .row{margin-top:12px}
+#extra ~ div{margin-top:16px}
+#extra ~ .row.actions{margin-top:20px}
+#go,#surprise{padding:12px 24px!important;font-size:16px!important;font-weight:600!important;border-radius:3px;border:0;cursor:pointer;font-family:inherit}
+#go{background:#40bcf4!important;color:#14181c!important}
+#go:hover:not(:disabled){background:#6ccdf8!important}
+#go:disabled,#surprise:disabled{opacity:.5;cursor:default}
+#surprise{background:#e5383b!important;color:#fff!important}
+#surprise:hover:not(:disabled){background:#f0575a!important}
+#extra + .hint{margin-top:-12px!important}
