@@ -230,7 +230,8 @@ function getDetails(slug) {
       slug, title: ld.name, year: parseInt(String(ld.dateCreated || "").slice(0, 4)) || null,
       director: (ld.director || []).map(x => x.name).slice(0, 2).join(", "), runtime: rm ? +rm[1] : null,
       rating: agg.ratingValue || null, count: agg.ratingCount || 0, genres: ld.genre || [],
-      desc: ((doc.querySelector('meta[name="description"]') || {}).content || "").replace(/\s+/g, " ").trim(),
+      desc: (() => { const ps = [...new Set([...doc.querySelectorAll(".production-synopsis p")].map(p => p.textContent.replace(/\s+/g, " ").trim()).filter(Boolean))]; return ps.length ? ps.join(" ") : ((doc.querySelector('meta[name="description"]') || {}).content || "").replace(/\s+/g, " ").trim(); })(),
+      themes: [...new Set([...doc.querySelectorAll('a[href*="/films/theme/"],a[href*="/films/mini-theme/"]')].map(a => a.textContent.replace(/\s+/g, " ").trim()).filter(t => t && t.length < 70))].slice(0, 6),
       poster: typeof ld.image === "string" ? ld.image : "",
     };
   })();
@@ -276,8 +277,8 @@ const MOODS = {
   "Weird & unexpected": m => G(m, "Fantasy", "Science Fiction", "Horror", "Mystery") && m.count < 250000,
   "Gory horror": m => G(m, "Horror"),
   "Thriller": m => G(m, "Thriller"),
-  "Rated 3.5+": m => m.rating >= 3.5,
-  "Rated 4+": m => m.rating >= 4,
+  "3.5 star +": m => m.rating >= 3.5,
+  "4 star +": m => m.rating >= 4,
   "Based on a true story": m => G(m, "History", "Crime", "Documentary", "War") && m.rating >= 3.6,
   "Documentary": m => G(m, "Documentary"),
   "Surprise me": () => true,
@@ -300,17 +301,17 @@ function textPreds(text) {
 }
 
 function whyOf(d) {
-  return [d.genres.slice(0, 3).join(" · "), d.rating ? "rated " + d.rating.toFixed(1) + "★ by Letterboxd members" : ""].filter(Boolean).join(", ");
+  return d.genres && d.genres.length ? "Genres: " + d.genres.slice(0, 3).join(" · ") : "";
 }
 
 async function similarTo(f, ids = ["simBox", "simTitle", "simRecs"], verb = "watched") {
-  $(ids[0]).hidden = false; $(ids[1]).textContent = "Finding films like " + f.name + "…"; $(ids[2]).innerHTML = "";
+  $(ids[0]).hidden = false; ensureClose($(ids[0]), ids); $(ids[1]).textContent = "Finding films like " + f.name + "…"; $(ids[2]).innerHTML = "";
   try {
     const slug = f.slug || await findSlug(f.name, f.year);
     if (!slug) throw new Error("nofilm");
     const seenSlugs = new Set(data.films.map(x => x.slug).filter(Boolean)), seenDetail = detailSeen();
-    const list = (await similarList(slug)).filter(s => !seenSlugs.has(s)).slice(0, 14);
-    const details = (await pmap(list, getDetails, 7)).filter(d => d && !seenDetail(d)).slice(0, 5);
+    const list = (await similarList(slug)).filter(s => !seenSlugs.has(s)).slice(0, 20);
+    const details = (await pmap(list, getDetails, 7)).filter(d => d && !seenDetail(d)).slice(0, 14);
     $(ids[1]).textContent = "Because you " + verb + " " + f.name;
     const sd = await getDetails(slug).catch(() => null);
     renderRecs(details.map(d => ({ ...d, why: whyOf(d), fit: fitSim(d, sd, f.name) })), false, ids[2]);
@@ -349,10 +350,11 @@ async function recommend(append) {
     const moods = [...document.querySelectorAll('.mood[aria-pressed="true"]')].map(b => b.textContent.trim());
     const preds = moods.map(k => MOODS[k]).filter(Boolean).concat(textPreds($("extra").value));
     const maxRt = +$("len").value || 0;
-    const rtOk = m => !maxRt || !m.runtime || m.runtime <= maxRt;
+    const dec = +$("decade").value || 0;
+    const rtOk = m => (!maxRt || !m.runtime || m.runtime <= maxRt) && (!dec || (m.year && m.year >= dec && m.year < dec + 10));
     let cands = [...score.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0]);
     if (moods.includes("Surprise me")) cands = cands.slice(0, 50).sort(() => Math.random() - 0.5);
-    const limit = (preds.length || maxRt) ? 60 : 14;
+    const limit = (preds.length || maxRt || dec) ? 60 : 14;
     const details = (await pmap(cands.slice(0, limit), getDetails, 8)).filter(d => d && !seenDetail(d) && rtOk(d));
     const hits = d => preds.filter(p => p(d)).length;
     let picks = details.filter(d => hits(d) === preds.length), relaxed = false;
@@ -392,7 +394,8 @@ function renderRecs(list, append, target) {
   list.forEach((r, k) => {
     const li = document.createElement("li"); li.className = "rec";
     li.dataset.rating = r.rating || 0;
-    li.innerHTML = '<div class="rank"></div><img class="rp" alt=""><div><h3></h3><div class="meta"></div><p class="desc"></p><p class="why"></p><p class="fit"></p><p class="because"></p><a target="_blank" rel="noopener">Open on Letterboxd ↗</a></div>';
+    li.dataset.idx = start + k;
+    li.innerHTML = '<div class="rank"></div><img class="rp" alt=""><div><h3></h3><div class="meta"></div><p class="desc"></p><p class="why"></p><p class="rated"></p><p class="themes"></p><p class="fit"></p><p class="because"></p><a target="_blank" rel="noopener">Open on Letterboxd ↗</a></div>';
     li.querySelector(".rank").textContent = start + k + 1;
     const im = li.querySelector(".rp");
     if (r.poster) { im.src = r.poster; im.referrerPolicy = "no-referrer"; } else im.remove();
@@ -402,6 +405,8 @@ function renderRecs(list, append, target) {
     li.querySelector(".meta").textContent = [r.director, r.runtime && r.runtime + " min"].filter(Boolean).join(" · ");
     li.querySelector(".desc").textContent = r.desc || "";
     li.querySelector(".why").textContent = r.why || "";
+    li.querySelector(".rated").textContent = r.rating ? "Rated " + Number(r.rating).toFixed(1) + "\u2605 by Letterboxd members" : "";
+    { const tl = li.querySelector(".themes"); let s = ""; (r.themes || []).slice(0, 3).forEach(t => { const n = s ? s + " \u00b7 " + t : t; if (!s || n.length <= 88) s = n; }); if (s) tl.textContent = "Themes: " + s; else tl.remove(); }
     li.querySelector(".fit").innerHTML = "";
     { const ft = r.fit || (target === "recs" ? fitFor(r) : ""); if (ft) { const b = document.createElement("b"); b.textContent = "Why you'll like it: "; li.querySelector(".fit").append(b, document.createTextNode(ft)); } else li.querySelector(".fit").remove(); }
     li.querySelector(".because").textContent = r.because && r.because.length ? "Because you rated highly: " + r.because.join(", ") : "";
@@ -509,4 +514,80 @@ function ensureFilter(ol) {
     }
   };
   if (data) showData();
+}
+
+function fitSim(d, sd, name) {
+  const parts = [];
+  const sg = sd ? (sd.genres || []).filter(x => (d.genres || []).includes(x)) : [];
+  const st = sd ? (d.themes || []).filter(x => (sd.themes || []).includes(x)) : [];
+  if (st.length) parts.push("shares the " + st.slice(0, 2).join(" and ").toLowerCase() + " themes that make " + name + " work");
+  else if (sg.length) parts.push("has the same " + sg.slice(0, 3).join("/").toLowerCase() + " pull as " + name);
+  else parts.push("is a close neighbour of " + name + " for Letterboxd viewers");
+  if (sd && sd.director && d.director && sd.director.split(", ").some(x => d.director.split(", ").includes(x))) parts.push("comes from the same director, " + d.director.split(", ")[0]);
+  else if (!st.length && d.themes && d.themes.length) parts.push("leans into " + d.themes[0].toLowerCase());
+  const s = parts.join(" and ");
+  return s.charAt(0).toUpperCase() + s.slice(1) + ".";
+}
+function fitFor(r) {
+  const moods = [...document.querySelectorAll(".mood")].filter(b => b.getAttribute("aria-pressed") === "true").map(b => b.textContent.trim()).filter(x => x !== "Surprise me");
+  const text = ($("extra").value || "").trim();
+  const sim = ($("similar").value || "").trim();
+  const parts = [];
+  if (text) parts.push("fits what you described (\u201c" + (text.length > 50 ? text.slice(0, 50) + "\u2026" : text) + "\u201d)");
+  if (moods.length) parts.push("delivers on your " + moods.join(" + ").toLowerCase() + " pick");
+  if (sim) parts.push("is close in feel to " + sim);
+  if (r.because && r.because.length) parts.push("is loved by fans of " + r.because.slice(0, 2).join(" and ") + ", which you rated highly");
+  if (r.themes && r.themes.length) parts.push("explores " + r.themes[0].toLowerCase());
+  if (!parts.length && r.genres && r.genres.length) parts.push("is a " + r.genres.slice(0, 2).join("/").toLowerCase() + " pick that suits your highly rated films");
+  if (!parts.length) return "";
+  const s = parts.length > 1 ? parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1] : parts[0];
+  return s.charAt(0).toUpperCase() + s.slice(1) + ".";
+}
+function applyFilter(ol, min, limit) {
+  const items = [...ol.querySelectorAll(".rec")];
+  items.sort((a, b) => min ? Number(b.dataset.rating) - Number(a.dataset.rating) : Number(a.dataset.idx) - Number(b.dataset.idx));
+  let n = 0;
+  items.forEach(li => {
+    ol.append(li);
+    const ok = Number(li.dataset.rating) >= min && (min || !limit || n < limit);
+    li.hidden = !ok;
+    if (ok) { n++; li.querySelector(".rank").textContent = n; }
+  });
+  return n;
+}
+function applyRecFilter() {
+  const ol = document.getElementById("recs");
+  const n = applyFilter(ol, recMin, 0);
+  const none = document.getElementById("recNone");
+  if (none) none.hidden = n > 0 || !ol.querySelector(".rec");
+}
+function ensureFilter(ol) {
+  let bar = ol.previousElementSibling;
+  if (!(bar && bar.classList.contains("rfbar"))) {
+    bar = document.createElement("div"); bar.className = "rfbar";
+    bar.innerHTML = '<button type="button" class="ghost rfx" data-min="0" aria-pressed="true">Most similar</button><button type="button" class="ghost rfx" data-min="3.5" aria-pressed="false">3.5\u2605+</button><button type="button" class="ghost rfx" data-min="4" aria-pressed="false">4\u2605+</button><span class="rfn"></span>';
+    ol.before(bar);
+    bar.querySelectorAll(".rfx").forEach(btn => btn.addEventListener("click", () => {
+      bar.querySelectorAll(".rfx").forEach(x => x.setAttribute("aria-pressed", String(x === btn)));
+      const n = applyFilter(ol, Number(btn.dataset.min), 5);
+      bar.querySelector(".rfn").textContent = n || !ol.querySelector(".rec") ? "" : "No films here reach that rating";
+    }));
+  } else {
+    bar.querySelectorAll(".rfx").forEach((x, i) => x.setAttribute("aria-pressed", String(i === 0)));
+    bar.querySelector(".rfn").textContent = "";
+  }
+  applyFilter(ol, 0, 5);
+}
+function ensureClose(box, ids) {
+  if (box.querySelector(".xbtn")) return;
+  const x = document.createElement("button");
+  x.type = "button"; x.className = "xbtn"; x.setAttribute("aria-label", "Close"); x.textContent = "\u00d7";
+  x.onclick = () => {
+    const ol = document.getElementById(ids[2]);
+    const bar = ol.previousElementSibling; if (bar && bar.classList.contains("rfbar")) bar.remove();
+    ol.innerHTML = ""; box.hidden = true;
+    document.querySelectorAll('.favcard[aria-pressed="true"], .rfilm[aria-pressed="true"]').forEach(b => b.setAttribute("aria-pressed", "false"));
+    box.parentElement.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  box.prepend(x);
 }
