@@ -231,7 +231,7 @@ function getDetails(slug) {
       director: (ld.director || []).map(x => x.name).slice(0, 2).join(", "), runtime: rm ? +rm[1] : null,
       rating: agg.ratingValue || null, count: agg.ratingCount || 0, genres: ld.genre || [],
       dirUrl: (() => { const d0 = (ld.director || [])[0] || {}; const u = String(d0.sameAs || d0.url || ""); return u.replace(/^https?:\/\/letterboxd\.com/, ""); })(),
-      castUrls: [...doc.querySelectorAll('.cast-list a[href^="/actor/"]')].map(a => a.getAttribute("href")).slice(0, 2),
+      castUrls: [...doc.querySelectorAll('.cast-list a[href^="/actor/"]')].map(a => a.getAttribute("href")).slice(0, 3),
       desc: (() => { const ps = [...new Set([...doc.querySelectorAll(".production-synopsis p")].map(p => p.textContent.replace(/\s+/g, " ").trim()).filter(Boolean))]; return ps.length ? ps.join(" ") : ((doc.querySelector('meta[name="description"]') || {}).content || "").replace(/\s+/g, " ").trim(); })(),
       themes: [...new Set([...doc.querySelectorAll('a[href*="/films/theme/"],a[href*="/films/mini-theme/"]')].map(a => a.textContent.replace(/\s+/g, " ").trim()).filter(t => t && t.length < 70))].slice(0, 6),
       poster: typeof ld.image === "string" ? ld.image : "",
@@ -312,8 +312,8 @@ async function similarTo(f, ids = ["simBox", "simTitle", "simRecs"], verb = "wat
     const slug = f.slug || await findSlug(f.name, f.year);
     if (!slug) throw new Error("nofilm");
     const seenSlugs = new Set(data.films.map(x => x.slug).filter(Boolean)), seenDetail = detailSeen();
-    const list = (await relatedSlugs(slug)).filter(s => !seenSlugs.has(s) && s !== slug).slice(0, 44);
-    const details = (await pmap(list, getDetails, 7)).filter(d => d && !seenDetail(d)).slice(0, 38);
+    const list = (await relatedSlugs(slug)).filter(s => !seenSlugs.has(s) && s !== slug).slice(0, 60);
+    const details = (await pmap(list, getDetails, 7)).filter(d => d && !seenDetail(d)).slice(0, 52);
     $(ids[1]).textContent = "Because you " + verb + " " + f.name;
     const sd = await getDetails(slug).catch(() => null);
     renderRecs(details.map(d => ({ ...d, why: whyOf(d), fit: fitSim(d, sd, f.name) })), false, ids[2]);
@@ -616,7 +616,7 @@ async function relatedSlugs(slug) {
   let extra = [];
   if (sd && sd.dirUrl) extra = (await listFrom("https://letterboxd.com" + sd.dirUrl).catch(() => [])).slice(0, 12);
   let out = [...new Set([...sim.slice(0, 30), ...extra, ...sim.slice(30)])];
-  if (out.length < 8 && sd) {
+  if (out.length < 20 && sd) {
     for (const u of (sd.castUrls || [])) {
       const l = await listFrom("https://letterboxd.com" + u).catch(() => []);
       out = [...new Set([...out, ...l.slice(0, 10)])];
