@@ -151,10 +151,4 @@ select:hover{background-color:#566680!important}
 #surprise{background:#40bcf4!important;color:#14181c!important;font-weight:600!important}
 #surprise:hover{background:#6ccdf8!important}
 
-#extra{display:block}
-#extra + .hint{margin:4px 0 0!important;padding:0!important}
-#go{background:#40bcf4!important;color:#14181c!important}
-#go:hover:not(:disabled){background:#6ccdf8!important}
-#surprise{background:#ff8000!important;color:#14181c!important}
-#surprise:hover:not(:disabled){background:#ff9a33!important}
-#surprise:disabled{opacity:.5}
+#extra + .hint{margin-top:-12px!important}
