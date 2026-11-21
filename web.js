@@ -566,7 +566,7 @@ function fitSim(d, sd, name) {
   return s.charAt(0).toUpperCase() + s.slice(1) + ".";
 }
 function fitFor(r) {
-  const moods = [...document.querySelectorAll(".mood")].filter(b => b.getAttribute("aria-pressed") === "true").map(b => b.textContent.trim()).filter(x => x !== "Surprise me");
+  const moods = [...document.querySelectorAll(".mood")].filter(b => b.getAttribute("aria-pressed") === "true").map(b => b.textContent.trim()).filter(x => x !== "Surprise me" && !(r.note && MOOD_SOURCES[x]));
   const text = ($("extra").value || "").trim();
   const sim = ($("similar").value || "").trim();
   const parts = [];
