@@ -170,3 +170,5 @@ select:hover{background-color:#566680!important}
 #surprise{background:#e5383b!important;color:#fff!important}
 #surprise:hover:not(:disabled){background:#f0575a!important}
 #extra + .hint{margin-top:-12px!important}
+
+#surprise{color:#000!important}
