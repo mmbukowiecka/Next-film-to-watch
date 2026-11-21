@@ -130,3 +130,10 @@ select:hover{background-color:#566680!important}
 
 #director{flex:1 1 auto;min-width:0}
 .row + .row{margin-top:10px}
+
+.moods{display:flex;flex-direction:column;gap:12px}
+.moodrow{display:flex;flex-wrap:wrap;gap:12px 8px}
+.mood{font-size:14px;padding:10px 14px}
+.moods + .row{margin-top:12px}
+.row + .row{margin-top:12px}
+.rh{display:inline-flex;align-items:center;gap:14px;margin-left:auto}

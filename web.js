@@ -168,7 +168,7 @@ function fmtDate(d) {
 function filmCard(f, cls, pick) {
   const b = document.createElement("button"); b.type = "button"; b.className = cls; b.setAttribute("aria-pressed", "false");
   b.title = f.name + (f.year ? " (" + f.year + ")" : ""); b.setAttribute("aria-label", b.title);
-  if (f.poster) { const im = document.createElement("img"); im.src = f.poster; im.alt = ""; im.loading = "lazy"; im.referrerPolicy = "no-referrer"; b.append(im); }
+  if (f.poster) { const im = document.createElement("img"); im.src = f.poster; im.alt = ""; im.loading = "eager"; im.referrerPolicy = "no-referrer"; b.append(im); }
   else { const t = document.createElement("b"); t.textContent = f.name; b.append(t); }
   if (cls === "rfilm") {
     const m = document.createElement("div"); m.className = "meta2";
@@ -268,24 +268,29 @@ function detailSeen() {
 }
 
 const G = (m, ...gs) => gs.some(g => m.genres.includes(g));
+const GORE = /gore|gory|slasher|splatter|blood|body horror|torture|brutal|massacre|mutilat|cannibal|dismember|violen/i;
 const MOODS = {
-  "Classics yet to see": m => m.rating >= 4 && m.count >= 20000,
-  "Old classics": m => m.year && m.year < 1980,
-  "Cinematography": m => m.rating >= 4,
-  "Award winning": m => m.rating >= 3.9 && m.count >= 100000,
+  "1001 Movies You Must See Before You Die": () => true,
+  "Ultimate film studies": () => true,
   "Revolutionary / cinema history": m => m.year && m.year < 1975 && m.rating >= 3.8,
-  "Indie": m => m.count < 80000 && m.rating >= 3.4,
+  "Cinematography": m => m.rating >= 4,
+  "Award winning": () => true,
   "Drama": m => G(m, "Drama") && m.rating >= 3.6,
-  "Weird & unexpected": m => G(m, "Fantasy", "Science Fiction", "Horror", "Mystery") && m.count < 250000,
-  "Gory horror": m => G(m, "Horror"),
   "Thriller": m => G(m, "Thriller"),
+  "Horror": m => G(m, "Horror"),
+  "Gory horror": m => G(m, "Horror") && GORE.test((m.desc || "") + " " + (m.themes || []).join(" ")),
+  "Comedy": m => G(m, "Comedy"),
+  "Satire": m => /satir|parod|spoof|send-up|mockumentary|lampoon/i.test((m.desc || "") + " " + (m.themes || []).join(" ")),
+  "Rom-com": m => (m.genres || []).includes("Romance") && (m.genres || []).includes("Comedy"),
+  "Sci-fi": m => G(m, "Science Fiction"),
+  "Documentary": m => G(m, "Documentary"),
+  "Indie": m => m.count < 80000 && m.rating >= 3.4,
+  "Based on a true story": m => G(m, "History", "Crime", "Documentary", "War") && m.rating >= 3.6,
+  "A24": () => true,
+  "Independent film studio": () => true,
+  "Weird and unexpected": m => G(m, "Fantasy", "Science Fiction", "Horror", "Mystery") && m.count < 250000,
   "3.5★+": m => m.rating >= 3.5,
   "4★+": m => m.rating >= 4,
-  "Based on a true story": m => G(m, "History", "Crime", "Documentary", "War") && m.rating >= 3.6,
-  "Documentary": m => G(m, "Documentary"),
-  "Romcom": m => (m.genres || []).includes("Romance") && (m.genres || []).includes("Comedy"),
-  "Comedy": m => G(m, "Comedy"),
-  "Sci-fi": m => G(m, "Science Fiction"),
   "Surprise me": () => true,
 };
 const WORDS = [
@@ -319,7 +324,9 @@ async function similarTo(f, ids = ["simBox", "simTitle", "simRecs"], verb = "wat
     const details = (await pmap(list, getDetails, 7)).filter(d => d && !seenDetail(d)).slice(0, 52);
     $(ids[1]).textContent = "Because you " + verb + " " + f.name;
     const sd = await getDetails(slug).catch(() => null);
-    renderRecs(details.map(d => ({ ...d, why: whyOf(d), fit: fitSim(d, sd, f.name) })), false, ids[2]);
+    const docSeed = !!(sd && (sd.genres || []).includes("Documentary"));
+    const shownD = docSeed ? details.filter(d => (d.genres || []).includes("Documentary")) : details;
+    renderRecs(shownD.map(d => ({ ...d, why: whyOf(d), fit: fitSim(d, sd, f.name) })), false, ids[2]);
   } catch (e) { $(ids[1]).textContent = "Couldn't find similar films right now. Try again."; }
 }
 
@@ -373,12 +380,20 @@ async function recommend(append) {
     { const cs = canon.map(c => c.slug).filter(s => !seenSlugs.has(s)); cands = cs.concat(cands.filter(s => !cs.includes(s))); }
     if (dirList.length) cands = dirList.filter(s => !seenSlugs.has(s));
     else if (dec && DECADE_SEEDS[dec]) { const ds = DECADE_SEEDS[dec].filter(s => !seenSlugs.has(s)); cands = ds.concat(cands.filter(s => !ds.includes(s))); }
+    const srcMoods = moods.filter(k => MOOD_SOURCES[k]);
+    if (srcMoods.length && !dirList.length) {
+      setStatus("Searching the " + srcMoods.join(" + ") + " list\u2026");
+      const arrs = await Promise.all(srcMoods.map(k => sourceSlugs(k).catch(() => [])));
+      const sl = [...new Set(arrs.flat())].filter(s => !seenSlugs.has(s)).sort(() => Math.random() - 0.5);
+      srcMoods.forEach((k, ix) => (arrs[ix] || []).forEach(s => { if (!canonMap.has(s)) canonMap.set(s, MOOD_SOURCES[k].note); }));
+      if (sl.length) cands = sl;
+    }
     const limit = (preds.length || maxRt || dec || canon.length || dirList.length) ? 60 : 14;
     const details = (await pmap(cands.slice(0, limit), getDetails, 8)).filter(d => d && !seenDetail(d) && rtOk(d));
     const hits = d => canonMap.has(d.slug) ? moodP.filter(p => p(d)).length + textP.length : preds.filter(p => p(d)).length;
     let picks = details.filter(d => hits(d) === preds.length), relaxed = false;
     const via = new Map();
-    for (let round = 0; round < 2 && picks.length < 6 && preds.length && !dirList.length; round++) {
+    for (let round = 0; round < 2 && picks.length < 6 && preds.length && !dirList.length && !srcMoods.length; round++) {
       const from = (picks.length ? picks : details.filter(d => hits(d) > 0)).slice(0, 6);
       if (!from.length) break;
       const more = await pmap(from, d => similarList(d.slug), 5);
@@ -627,6 +642,7 @@ async function relatedSlugs(slug) {
   let extra = [];
   if (sd && sd.dirUrl) extra = (await listFrom("https://letterboxd.com" + sd.dirUrl).catch(() => [])).slice(0, 12);
   let out = [...new Set([...sim.slice(0, 30), ...extra, ...sim.slice(30)])];
+  if (sd && (sd.genres || []).includes("Documentary")) out = [...new Set([...sim.slice(0, 20), ...(await docPool().catch(() => [])), ...out])];
   if (out.length < 20 && sd) {
     for (const u of (sd.castUrls || [])) {
       const l = await listFrom("https://letterboxd.com" + u).catch(() => []);
@@ -736,3 +752,36 @@ const DECADE_SEEDS = {
   "1920": ["the-golem-1920", "the-gold-rush", "sherlock-jr", "the-last-laugh", "safety-last", "the-general", "la-roue", "nanook-of-the-north", "greed", "nosferatu", "metropolis", "battleship-potemkin", "the-passion-of-joan-of-arc"],
   "1930": ["city-lights", "m", "modern-times", "frankenstein-1931", "dracula-1931", "vampyr", "zero-de-conduite", "it-happened-one-night", "the-thin-man", "top-hat", "stagecoach", "mr-smith-goes-to-washington", "the-adventures-of-robin-hood", "ninotchka", "bringing-up-baby"]
 };
+
+async function docPool() {
+  if (window.__docPool) return window.__docPool;
+  const top = data.films.filter(f => f.slug && f.rating >= 3.5).slice(0, 60);
+  const ds = await pmap(top, f => getDetails(f.slug), 8);
+  const docs = top.filter((f, i) => ds[i] && (ds[i].genres || []).includes("Documentary")).slice(0, 6);
+  const lists = await pmap(docs, f => similarList(f.slug), 4);
+  window.__docPool = [...new Set(lists.flat().filter(Boolean))];
+  return window.__docPool;
+}
+async function pagedSlugs(url, maxPages) {
+  const first = parseDoc(await getText(url));
+  const pick = d => [...d.querySelectorAll("[data-item-slug],[data-film-slug]")].map(e => e.dataset.itemSlug || e.dataset.filmSlug).filter(Boolean);
+  const n = parseInt((first.querySelector(".paginate-pages li:last-child a") || {}).textContent) || 1;
+  const all = []; for (let p = 1; p <= n; p++) all.push(p);
+  const chosen = all.sort(() => Math.random() - 0.5).slice(0, maxPages);
+  const got = await pmap(chosen, p => p === 1 ? Promise.resolve(pick(first)) : getText(url + "page/" + p + "/").then(t => pick(parseDoc(t))), 3);
+  return got.filter(Boolean).flat();
+}
+const CINE_EXTRA = ["days-of-heaven", "barry-lyndon", "in-the-mood-for-love", "come-and-see", "the-tree-of-life", "ran", "hero-2002", "the-assassin-2015", "stalker", "2001-a-space-odyssey", "lawrence-of-arabia", "blade-runner-2049", "the-revenant-2015", "roma-2018", "wings-of-desire", "the-fall-2006", "melancholia", "phantom-thread", "portrait-of-a-lady-on-fire", "the-grand-budapest-hotel", "apocalypse-now", "the-godfather", "citizen-kane", "sunrise-a-song-of-two-humans", "the-conformist", "mulholland-drive", "2046", "happy-together", "the-red-shoes", "black-narcissus", "au-hasard-balthazar", "tokyo-story", "the-spirit-of-the-beehive", "paris-texas"];
+const MOOD_SOURCES = {
+  "1001 Movies You Must See Before You Die": { urls: ["https://letterboxd.com/gubarenko/list/1001-movies-you-must-see-before-you-die-2021/"], pages: 3, note: "is on the 1001 Movies You Must See Before You Die list" },
+  "Ultimate film studies": { urls: ["https://letterboxd.com/ganyyy/list/the-ultimate-film-studies-watchlist-expanded/"], pages: 2, note: "is on the Ultimate Film Studies watchlist" },
+  "Cinematography": { urls: ["https://letterboxd.com/oscars/list/oscar-winning-films-cinematography/"], extra: CINE_EXTRA, pages: 2, note: "is celebrated for its cinematography" },
+  "Award winning": { urls: ["https://letterboxd.com/oscars/list/oscar-winning-films-best-picture/", "https://letterboxd.com/darrencb/list/palme-dor-winners-ranked-1/"], pages: 2, note: "won a Best Picture Oscar or the Palme d\u2019Or" },
+  "A24": { urls: ["https://letterboxd.com/studio/a24/"], pages: 4, note: "is an A24 film" },
+  "Independent film studio": { urls: ["https://letterboxd.com/studio/mubi/", "https://letterboxd.com/studio/searchlight-pictures/", "https://letterboxd.com/studio/focus-features/", "https://letterboxd.com/studio/annapurna-pictures/", "https://letterboxd.com/studio/ifc-films/", "https://letterboxd.com/studio/sony-pictures-classics/"], pages: 2, note: "comes from an independent film studio" }
+};
+async function sourceSlugs(k) {
+  const s = MOOD_SOURCES[k];
+  const parts = await Promise.all(s.urls.map(u => pagedSlugs(u, s.pages).catch(() => [])));
+  return [...new Set([...parts.flat(), ...(s.extra || [])])];
+}
