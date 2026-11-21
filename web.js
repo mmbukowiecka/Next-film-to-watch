@@ -277,8 +277,8 @@ const MOODS = {
   "Weird & unexpected": m => G(m, "Fantasy", "Science Fiction", "Horror", "Mystery") && m.count < 250000,
   "Gory horror": m => G(m, "Horror"),
   "Thriller": m => G(m, "Thriller"),
-  "3.5 star +": m => m.rating >= 3.5,
-  "4 star +": m => m.rating >= 4,
+  "3.5★+": m => m.rating >= 3.5,
+  "4★+": m => m.rating >= 4,
   "Based on a true story": m => G(m, "History", "Crime", "Documentary", "War") && m.rating >= 3.6,
   "Documentary": m => G(m, "Documentary"),
   "Surprise me": () => true,
@@ -310,8 +310,8 @@ async function similarTo(f, ids = ["simBox", "simTitle", "simRecs"], verb = "wat
     const slug = f.slug || await findSlug(f.name, f.year);
     if (!slug) throw new Error("nofilm");
     const seenSlugs = new Set(data.films.map(x => x.slug).filter(Boolean)), seenDetail = detailSeen();
-    const list = (await similarList(slug)).filter(s => !seenSlugs.has(s)).slice(0, 20);
-    const details = (await pmap(list, getDetails, 7)).filter(d => d && !seenDetail(d)).slice(0, 14);
+    const list = (await similarList(slug)).filter(s => !seenSlugs.has(s)).slice(0, 36);
+    const details = (await pmap(list, getDetails, 7)).filter(d => d && !seenDetail(d)).slice(0, 30);
     $(ids[1]).textContent = "Because you " + verb + " " + f.name;
     const sd = await getDetails(slug).catch(() => null);
     renderRecs(details.map(d => ({ ...d, why: whyOf(d), fit: fitSim(d, sd, f.name) })), false, ids[2]);
@@ -545,11 +545,11 @@ function fitFor(r) {
 }
 function applyFilter(ol, min, limit) {
   const items = [...ol.querySelectorAll(".rec")];
-  items.sort((a, b) => min ? Number(b.dataset.rating) - Number(a.dataset.rating) : Number(a.dataset.idx) - Number(b.dataset.idx));
+  items.sort((a, b) => Number(a.dataset.idx) - Number(b.dataset.idx));
   let n = 0;
   items.forEach(li => {
     ol.append(li);
-    const ok = Number(li.dataset.rating) >= min && (min || !limit || n < limit);
+    const ok = Number(li.dataset.rating) >= min && (!limit || n < limit);
     li.hidden = !ok;
     if (ok) { n++; li.querySelector(".rank").textContent = n; }
   });
@@ -569,19 +569,19 @@ function ensureFilter(ol) {
     ol.before(bar);
     bar.querySelectorAll(".rfx").forEach(btn => btn.addEventListener("click", () => {
       bar.querySelectorAll(".rfx").forEach(x => x.setAttribute("aria-pressed", String(x === btn)));
-      const n = applyFilter(ol, Number(btn.dataset.min), 5);
+      const n = applyFilter(ol, Number(btn.dataset.min), 4);
       bar.querySelector(".rfn").textContent = n || !ol.querySelector(".rec") ? "" : "No films here reach that rating";
     }));
   } else {
     bar.querySelectorAll(".rfx").forEach((x, i) => x.setAttribute("aria-pressed", String(i === 0)));
     bar.querySelector(".rfn").textContent = "";
   }
-  applyFilter(ol, 0, 5);
+  applyFilter(ol, 0, 4);
 }
 function ensureClose(box, ids) {
   if (box.querySelector(".xbtn")) return;
   const x = document.createElement("button");
-  x.type = "button"; x.className = "xbtn"; x.setAttribute("aria-label", "Close"); x.textContent = "\u00d7";
+  x.type = "button"; x.className = "xbtn"; x.setAttribute("aria-label", "Close"); x.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
   x.onclick = () => {
     const ol = document.getElementById(ids[2]);
     const bar = ol.previousElementSibling; if (bar && bar.classList.contains("rfbar")) bar.remove();

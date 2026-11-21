@@ -118,3 +118,6 @@ select:hover{background-color:#566680!important}
 .xbtn{position:absolute;top:0;right:0;width:34px;height:34px;border-radius:50%;border:1px solid #567;background:#2c3440;color:#d8e0e8;font-size:18px;line-height:1;cursor:pointer}
 .xbtn:hover{background:#4a586b}
 #decade{min-width:150px}
+
+.xbtn{display:flex!important;align-items:center;justify-content:center;padding:0!important;top:4px!important;right:4px!important}
+.xbtn svg{display:block}
