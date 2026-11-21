@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Watching with others? · Next film to watch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,400;1,9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="web.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="topbtn" href="index.html">Watching alone?</a>
+    <h1>Watching <span>with others?</span></h1>
+    <p class="lede">Add everyone&#39;s Letterboxd username and get films you have not seen that all of you are likely to enjoy.</p>
+  </header>
+
+  <section class="panel">
+    <h2>Who is watching?</h2>
+    <div id="people"></div>
+    <div class="row actions2">
+      <button type="button" class="ghost" id="addp">+ Add another person</button>
+    </div>
+    <label class="chk"><input type="checkbox" id="unseen" checked> Only films none of us has seen</label>
+    <div class="row actions2">
+      <button type="button" class="bluebtn" id="find">Find films for us</button>
+    </div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <section class="panel" id="out" hidden>
+    <h2>Films for all of you</h2>
+    <ol class="recs" id="recs"></ol>
+    <div class="row actions2"><button type="button" class="ghost" id="more">Show 10 more</button></div>
+  </section>
+</div>
+<script src="together.js"></script>
+</body>
+</html>
