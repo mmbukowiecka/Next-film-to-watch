@@ -520,7 +520,7 @@ function fitSim(d, sd, name) {
   const parts = [];
   const sg = sd ? (sd.genres || []).filter(x => (d.genres || []).includes(x)) : [];
   const st = sd ? (d.themes || []).filter(x => (sd.themes || []).includes(x)) : [];
-  if (st.length) parts.push("shares the " + st.slice(0, 2).join(" and ").toLowerCase() + " themes that make " + name + " work");
+  if (st.length) parts.push("shares themes with " + name + ": " + st.slice(0, 2).join(" and ").toLowerCase());
   else if (sg.length) parts.push("has the same " + sg.slice(0, 3).join("/").toLowerCase() + " pull as " + name);
   else parts.push("is a close neighbour of " + name + " for Letterboxd viewers");
   if (sd && sd.director && d.director && sd.director.split(", ").some(x => d.director.split(", ").includes(x))) parts.push("comes from the same director, " + d.director.split(", ")[0]);
