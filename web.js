@@ -700,3 +700,5 @@ async function canonCandidates(text, moods) {
   }
   return out;
 }
+
+{ const clearUser = () => { if (!data) $("user").value = ""; }; clearUser(); window.addEventListener("pageshow", clearUser); setTimeout(clearUser, 300); }
