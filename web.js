@@ -273,7 +273,7 @@ const MOODS = {
   "1001 Movies You Must See Before You Die": () => true,
   "The Ultimate Film Studies": () => true,
   "Revolutionary / cinema history": m => m.year && m.year < 1975 && m.rating >= 3.8,
-  "Beautiful cinematography": m => m.rating >= 4,
+  "Beautiful cinematography": () => true,
   "Award winning": () => true,
   "Drama": m => G(m, "Drama") && m.rating >= 3.6,
   "Thriller": m => G(m, "Thriller"),
@@ -287,6 +287,7 @@ const MOODS = {
   "Indie": m => m.count < 80000 && m.rating >= 3.4,
   "Based on a true story": m => G(m, "History", "Crime", "Documentary", "War") && m.rating >= 3.6,
   "Letterboxd's Top 500 Films": () => true,
+  "IMDb Top 250": () => true,
   "A24": () => true,
   "Independent film studio": () => true,
   "Weird and unexpected": m => G(m, "Fantasy", "Science Fiction", "Horror", "Mystery") && m.count < 250000,
@@ -777,11 +778,12 @@ async function pagedSlugs(url, maxPages) {
 }
 const CINE_EXTRA = ["days-of-heaven", "barry-lyndon", "in-the-mood-for-love", "come-and-see", "the-tree-of-life", "ran", "hero-2002", "the-assassin-2015", "stalker", "2001-a-space-odyssey", "lawrence-of-arabia", "blade-runner-2049", "the-revenant-2015", "roma-2018", "wings-of-desire", "the-fall-2006", "melancholia", "phantom-thread", "portrait-of-a-lady-on-fire", "the-grand-budapest-hotel", "apocalypse-now", "the-godfather", "citizen-kane", "sunrise-a-song-of-two-humans", "the-conformist", "mulholland-drive", "2046", "happy-together", "the-red-shoes", "black-narcissus", "au-hasard-balthazar", "tokyo-story", "the-spirit-of-the-beehive", "paris-texas"];
 const MOOD_SOURCES = {
-  "1001 Movies You Must See Before You Die": { urls: ["https://letterboxd.com/gubarenko/list/1001-movies-you-must-see-before-you-die-2021/"], pages: 3, note: "is on the 1001 Movies You Must See Before You Die list" },
+  "1001 Movies You Must See Before You Die": { urls: ["https://letterboxd.com/peterstanley/list/1001-movies-you-must-see-before-you-die/"], pages: 3, note: "is on the 1001 Movies You Must See Before You Die list" },
   "The Ultimate Film Studies": { urls: ["https://letterboxd.com/ganyyy/list/the-ultimate-film-studies-watchlist-expanded/"], pages: 2, note: "is on the Ultimate Film Studies watchlist" },
-  "Beautiful cinematography": { urls: ["https://letterboxd.com/oscars/list/oscar-winning-films-cinematography/"], extra: CINE_EXTRA, pages: 2, note: "is celebrated for its cinematography" },
+  "Beautiful cinematography": { urls: ["https://letterboxd.com/etolkin/list/filmlist:28697007/"], pages: 3, note: "is celebrated for its cinematography" },
   "Award winning": { urls: ["https://letterboxd.com/oscars/list/oscar-winning-films-best-picture/", "https://letterboxd.com/darrencb/list/palme-dor-winners-ranked-1/"], pages: 2, note: "won a Best Picture Oscar or the Palme d\u2019Or" },
   "Letterboxd's Top 500 Films": { urls: ["https://letterboxd.com/official/list/letterboxds-top-500-films/"], pages: 3, note: "is in Letterboxd\u2019s Top 500 Films" },
+  "IMDb Top 250": { urls: ["https://letterboxd.com/dave/list/imdb-top-250/"], pages: 3, note: "is in the IMDb Top 250" },
   "A24": { urls: ["https://letterboxd.com/studio/a24/"], pages: 4, note: "is an A24 film" },
   "Independent film studio": { urls: ["https://letterboxd.com/studio/mubi/", "https://letterboxd.com/studio/searchlight-pictures/", "https://letterboxd.com/studio/focus-features/", "https://letterboxd.com/studio/annapurna-pictures/", "https://letterboxd.com/studio/ifc-films/", "https://letterboxd.com/studio/sony-pictures-classics/"], pages: 2, note: "comes from an independent film studio" }
 };
