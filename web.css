@@ -201,3 +201,5 @@ select:hover{background-color:#566680!important}
 .actions .cap{font-style:italic;font-family:Georgia,"Times New Roman",serif;font-size:15px;color:#99aabb}
 .actions .or{font-style:italic;font-family:Georgia,"Times New Roman",serif;font-size:15px;color:#99aabb;line-height:46px}
 button#surprise:hover,button#surprise:hover:not(:disabled),button#surprise:focus{background:#e5383b!important;color:#000!important}
+
+#askPanel[hidden]{display:none!important}

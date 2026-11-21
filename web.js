@@ -460,7 +460,7 @@ function renderRecs(list, append, target) {
 }
 
 /* ---------- Wiring ---------- */
-function updateGo() { $("go").disabled = !data; $("surprise").disabled = !data; }
+function updateGo() { $("go").disabled = !data; $("surprise").disabled = !data; const ap = document.getElementById("askPanel"); if (ap) ap.hidden = !data; }
 
 document.querySelectorAll(".mood").forEach(b => {
   b.setAttribute("aria-pressed", "false");
