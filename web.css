@@ -278,3 +278,22 @@ button.incbtn[data-sec="secLists"],#secLists{order:3}
 .incsec .mood{font-size:13.5px!important;padding:7px 9px!important}
 .incsec input,.incsec select,.incsec textarea{font-size:15px!important}
 .incsec .hint{font-size:13px!important}
+
+/* v5 */
+.topbtn.leftbtn{right:auto!important;left:20px}
+.bl{color:#40bcf4}
+.topbtn.on{border-color:#40bcf4!important}
+header h1{margin-top:34px!important}
+header p a{color:#40bcf4}
+.nrow{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.nrow .puser{flex:0 0 170px}
+.nrow .pfavs{flex:1;min-width:0}
+.nrow.solo .puser{display:none}
+.nrow .pdel[hidden],#addp[hidden],.chk[hidden]{display:none!important}
+#out>.row.between{gap:14px}
+#out .rfs,#out>.row.between>span:last-child{display:inline-flex;gap:8px;align-items:center}
+#out .rf,#out #more,#out #clear{font-size:14px!important;padding:0 14px!important;height:36px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
+.rec .desc{margin-bottom:8px!important}
+.rec .why{margin-top:10px!important}
+.rec .themes{margin:4px 0 10px!important}
+.rec .fit{margin:12px 0 14px!important}
