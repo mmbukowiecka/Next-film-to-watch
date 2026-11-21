@@ -319,3 +319,8 @@ header p a{color:#40bcf4}
 
 /* v9 */
 #persWrap{margin-top:-18px!important}
+
+/* v10 */
+button.incbtn{width:380px;max-width:100%}
+#moods2 .moodrow{display:flex;gap:8px;flex-wrap:nowrap}
+#moods2 .mood{flex:1 1 auto!important;min-width:0;white-space:normal!important;line-height:1.2;font-size:12.5px!important;padding:8px 8px!important}
