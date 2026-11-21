@@ -98,6 +98,67 @@ function getDetails(slug) {
   return p;
 }
 
+async function fetchYear(user) {
+  const year = new Date().getFullYear(), byId = new Map();
+  for (let n = 1; n <= 25; n++) {
+    let rows;
+    try { rows = [...parseDoc(await getText("https://letterboxd.com/" + user + "/diary/for/" + year + "/page/" + n + "/")).querySelectorAll("tr.diary-entry-row")]; }
+    catch (e) { if (e.status === 404) break; throw e; }
+    if (!rows.length) break;
+    rows.forEach(tr => {
+      const id = tr.dataset.productionUid || tr.dataset.objectId;
+      const r = tr.querySelector(".col-rating [class*='rated-']");
+      const m = r && r.className.match(/rated-(\d+)/);
+      const rating = m ? +m[1] / 2 : null;
+      const cur = byId.get(id);
+      if (!cur) byId.set(id, { rating }); else if (cur.rating == null && rating != null) cur.rating = rating;
+    });
+    if (rows.length < 50) break;
+  }
+  const rs = [...byId.values()].map(x => x.rating).filter(Boolean);
+  return { year, count: byId.size, rated: rs.length, avg: rs.length ? rs.reduce((s, x) => s + x, 0) / rs.length : null };
+}
+
+async function findSlug(name, year) {
+  const doc = parseDoc(await getText("https://letterboxd.com/s/search/films/" + encodeURIComponent(name) + "/"));
+  const els = [...doc.querySelectorAll("[data-item-slug],[data-film-slug]")];
+  const pick = (year && els.find(e => (e.dataset.itemFullDisplayName || "").includes("(" + year + ")"))) || els[0];
+  return pick ? (pick.dataset.itemSlug || pick.dataset.filmSlug) : null;
+}
+
+function renderStats(people, yr) {
+  const names = people.map(p => p.u);
+  const w = $("welcome"); w.textContent = "Welcome back, ";
+  names.forEach((n, i) => { const u = document.createElement("u"); u.textContent = n; w.append(u); if (i < names.length - 2) w.append(", "); else if (i === names.length - 2) w.append(" and "); });
+  w.append(". Here\u2019s what you\u2019ve been watching\u2026");
+  const per = new Map();
+  people.forEach(p => p.films.forEach(f => { if (!per.has(f.slug)) per.set(f.slug, []); if (f.rating) per.get(f.slug).push(f.rating); }));
+  const means = []; per.forEach(a => { if (a.length) means.push(a.reduce((s, x) => s + x, 0) / a.length); });
+  const avg = means.length ? means.reduce((s, x) => s + x, 0) / means.length : null;
+  let cnt = 0, rated = 0, sum = 0; yr.forEach(y => { cnt += y.count; rated += y.rated; sum += (y.avg || 0) * y.rated; });
+  const year = new Date().getFullYear();
+  const items = [[per.size.toLocaleString("en-US"), "Films logged"], [avg ? avg.toFixed(2) + "\u2605" : "\u2013", "Average rating, all logged films"], [cnt.toLocaleString("en-US"), "Watched in " + year], [rated ? (sum / rated).toFixed(2) + "\u2605" : "\u2013", "Average rating in " + year]];
+  const st = $("stats"); st.innerHTML = "";
+  items.forEach(it => { const d = document.createElement("div"); d.className = "stat"; const b = document.createElement("b"); b.textContent = it[0]; const s = document.createElement("span"); s.textContent = it[1]; d.append(b, s); st.append(d); });
+  $("statsPanel").hidden = false;
+}
+let sim = null;
+async function applySim() {
+  const q = $("simfilm").value.trim();
+  if (!q) return clearSim();
+  $("simgo").disabled = true; $("simstatus").className = "status"; $("simstatus").textContent = "Finding films like " + q + "\u2026";
+  try {
+    const slug = await findSlug(q, null);
+    if (!slug) throw new Error("Couldn\u2019t find a film called " + q + ".");
+    const list = await similarList(slug);
+    const d = await getDetails(slug).catch(() => null);
+    sim = { slug: slug, name: d ? d.title : q, set: new Set(list) };
+    $("simstatus").textContent = "Showing films similar to " + sim.name + ".";
+    rank();
+  } catch (e) { $("simstatus").className = "status bad"; $("simstatus").textContent = e.message || "Something went wrong."; }
+  $("simgo").disabled = false;
+}
+function clearSim() { sim = null; $("simfilm").value = ""; $("simstatus").className = "status"; $("simstatus").textContent = ""; rank(); }
 function status(t, bad) { const s = $("status"); s.textContent = t || ""; s.className = "status" + (bad ? " bad" : ""); }
 function joinNames(a) { if (a.length <= 1) return a.join(""); return a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; }
 function shuffle(a) { return a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(x => x[1]); }
@@ -115,7 +176,7 @@ async function run() {
   const names = [];
   document.querySelectorAll(".puser").forEach(i => { const n = cleanUser(i.value); if (n && !names.some(x => x.toLowerCase() === n.toLowerCase())) names.push(n); });
   if (names.length < 2) return status("Add at least two Letterboxd usernames.", true);
-  $("find").disabled = true; $("out").hidden = true;
+  $("find").disabled = true; $("out").hidden = true; sim = null; $("simfilm").value = ""; $("simstatus").textContent = "";
   try {
     const people = [];
     for (const u of names) {
@@ -129,6 +190,9 @@ async function run() {
       try { wl = await fetchAllPages(u + "/watchlist", 15, function () {}); } catch (e) {}
       people.push({ u: u, films: films, wl: wl });
     }
+    status("Adding up everyone\u2019s stats\u2026");
+    const yr = await Promise.all(people.map(p => fetchYear(p.u).catch(() => ({ year: new Date().getFullYear(), count: 0, rated: 0, avg: null }))));
+    renderStats(people, yr);
     const cand = new Map();
     const get = s => { let c = cand.get(s); if (!c) { c = { wl: new Set(), sim: new Map() }; cand.set(s, c); } return c; };
     const seen = new Map();
@@ -153,13 +217,15 @@ async function run() {
 function rank() {
   if (!ctx) return;
   const onlyUnseen = $("unseen").checked;
-  ranked = [...ctx.cand.entries()].filter(e => !onlyUnseen || !ctx.seen.has(e[0])).map(e => {
+  const entries = sim ? [...sim.set].map(s => [s, ctx.cand.get(s) || { wl: new Set(), sim: new Map() }]) : [...ctx.cand.entries()];
+  ranked = entries.filter(e => !onlyUnseen || !ctx.seen.has(e[0])).map(e => {
     const c = e[1]; const users = new Set([...c.wl, ...c.sim.keys()]); let hits = 0; c.sim.forEach(a => { hits += a.length; });
-    return { slug: e[0], c: c, users: users, score: users.size * 10 + c.wl.size * 4 + Math.min(hits, 6) };
+    return { slug: e[0], c: c, users: users, score: users.size * 10 + c.wl.size * 4 + Math.min(hits, 6) + (sim ? 8 : 0) };
   }).sort((a, b) => b.score - a.score).slice(0, 80);
   $("recs").innerHTML = ""; shownN = 0; $("more").hidden = false;
-  $("out").hidden = false;
-  if (!ranked.length) { status("No matching films found. Try adding more people or untick the box.", true); $("more").hidden = true; return; }
+  $("out").hidden = false; $("persWrap").hidden = false;
+  status("");
+  if (!ranked.length) { status("No matching films found. Try adding more people, removing the similar film, or untick the box.", true); $("more").hidden = true; return; }
   showMore();
 }
 function reason(r) {
@@ -168,6 +234,7 @@ function reason(r) {
   const sims = [];
   r.c.sim.forEach((arr, u) => { const uniq = [...new Set(arr)].slice(0, 2); sims.push(u + "\u2019s favourite" + (uniq.length > 1 ? "s " : " ") + joinNames(uniq)); });
   if (sims.length) parts.push("it\u2019s similar to " + joinNames(sims));
+  if (sim && sim.set.has(r.slug)) parts.push("it\u2019s similar to " + sim.name + ", which you picked");
   const t = parts.join(", and ");
   return t.charAt(0).toUpperCase() + t.slice(1) + ".";
 }
@@ -178,7 +245,7 @@ function card(r, d, n) {
   li.querySelector(".rank").textContent = n;
   const im = li.querySelector(".rp"); if (d.poster) { im.src = d.poster; im.referrerPolicy = "no-referrer"; } else im.remove();
   const h = li.querySelector("h3"); h.textContent = d.title; const sm = document.createElement("small"); sm.textContent = d.year || ""; h.append(sm);
-  const chip = document.createElement("span"); chip.className = "wl"; chip.textContent = r.users.size >= total ? "Matches all " + total + " of you" : "Matches " + r.users.size + " of " + total; h.append(chip);
+  const chip = document.createElement("span"); chip.className = "wl"; chip.textContent = !r.users.size ? "Similar to " + (sim ? sim.name : "your pick") : (r.users.size >= total ? "Matches all " + total + " of you" : "Matches " + r.users.size + " of " + total); h.append(chip);
   li.querySelector(".meta").textContent = [d.director, d.runtime && d.runtime + " min"].filter(Boolean).join(" \u00b7 ");
   li.querySelector(".desc").textContent = d.desc || "";
   li.querySelector(".why").textContent = (d.genres || []).slice(0, 3).join(", ");
@@ -200,4 +267,7 @@ $("addp").onclick = () => addRow();
 $("find").onclick = run;
 $("more").onclick = showMore;
 $("unseen").onchange = rank;
+$("pers").onclick = () => { const p = $("persPanel"); p.hidden = !p.hidden; $("pers").setAttribute("aria-expanded", String(!p.hidden)); $("pers").textContent = p.hidden ? "Personalise your list" : "Hide personalisation"; };
+$("simgo").onclick = applySim; $("simx").onclick = clearSim;
+$("simfilm").addEventListener("keydown", e => { if (e.key === "Enter") applySim(); });
 addRow(); addRow();

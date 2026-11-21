@@ -220,3 +220,16 @@ button#surprise:hover,button#surprise:hover:not(:disabled),button#surprise:focus
 .bluebtn:hover:not(:disabled){background:#6ccdf8!important}
 .bluebtn:disabled{opacity:.5}
 .status.bad{color:#e5383b}
+
+/* together page 2 */
+.actions2.split{justify-content:space-between;align-items:center}
+.actions2.right{justify-content:flex-end}
+.split .chk{margin-top:0}
+.greenbtn{background:#00e054!important;color:#000!important;padding:12px 24px!important;font-size:16px;font-weight:600}
+.greenbtn:hover:not(:disabled){background:#33e676!important}
+.greenbtn:disabled{opacity:.5}
+#persWrap{margin:22px 0 0;text-align:center}
+.persbtn{background:#4a586b!important;border:1px solid #6b7c93!important;color:#fff!important;font-weight:700;padding:12px 24px!important;font-size:16px}
+.persbtn:hover{background:#566680!important}
+.perspanel{text-align:left;margin-top:16px}
+.perspanel .row input{flex:1 1 auto}

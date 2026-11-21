@@ -20,15 +20,33 @@
   <section class="panel">
     <h2>Who is watching?</h2>
     <div id="people"></div>
-    <div class="row actions2">
+    <div class="row actions2 split">
       <button type="button" class="ghost" id="addp">+ Add another person</button>
+      <label class="chk"><input type="checkbox" id="unseen" checked> Only films none of us has seen</label>
     </div>
-    <label class="chk"><input type="checkbox" id="unseen" checked> Only films none of us has seen</label>
-    <div class="row actions2">
-      <button type="button" class="bluebtn" id="find">Find films for us</button>
+    <div class="row actions2 right">
+      <button type="button" class="greenbtn" id="find">Find films for us</button>
     </div>
     <div class="status" id="status"></div>
   </section>
+
+  <section class="panel" id="statsPanel" hidden>
+    <p class="welcome" id="welcome"></p>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <div id="persWrap" hidden>
+    <button type="button" class="persbtn" id="pers" aria-expanded="false">Personalise your list</button>
+    <div class="panel perspanel" id="persPanel" hidden>
+      <h2>Similar to this film</h2>
+      <div class="row">
+        <input type="text" id="simfilm" placeholder="Similar to this film… (type a title)" autocomplete="off" spellcheck="false">
+        <button type="button" class="ghost" id="simx" aria-label="Remove similar film">✕</button>
+        <button type="button" class="bluebtn" id="simgo">Update list</button>
+      </div>
+      <div class="status" id="simstatus"></div>
+    </div>
+  </div>
 
   <section class="panel" id="out" hidden>
     <h2>Films for all of you</h2>
