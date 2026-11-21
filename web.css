@@ -121,3 +121,5 @@ select:hover{background-color:#566680!important}
 
 .xbtn{display:flex!important;align-items:center;justify-content:center;padding:0!important;top:4px!important;right:4px!important}
 .xbtn svg{display:block}
+
+.rec .why,.rec .themes{font-weight:700;color:#d8e0e8}

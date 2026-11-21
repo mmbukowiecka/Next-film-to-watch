@@ -230,6 +230,8 @@ function getDetails(slug) {
       slug, title: ld.name, year: parseInt(String(ld.dateCreated || "").slice(0, 4)) || null,
       director: (ld.director || []).map(x => x.name).slice(0, 2).join(", "), runtime: rm ? +rm[1] : null,
       rating: agg.ratingValue || null, count: agg.ratingCount || 0, genres: ld.genre || [],
+      dirUrl: (() => { const d0 = (ld.director || [])[0] || {}; const u = String(d0.sameAs || d0.url || ""); return u.replace(/^https?:\/\/letterboxd\.com/, ""); })(),
+      castUrls: [...doc.querySelectorAll('.cast-list a[href^="/actor/"]')].map(a => a.getAttribute("href")).slice(0, 2),
       desc: (() => { const ps = [...new Set([...doc.querySelectorAll(".production-synopsis p")].map(p => p.textContent.replace(/\s+/g, " ").trim()).filter(Boolean))]; return ps.length ? ps.join(" ") : ((doc.querySelector('meta[name="description"]') || {}).content || "").replace(/\s+/g, " ").trim(); })(),
       themes: [...new Set([...doc.querySelectorAll('a[href*="/films/theme/"],a[href*="/films/mini-theme/"]')].map(a => a.textContent.replace(/\s+/g, " ").trim()).filter(t => t && t.length < 70))].slice(0, 6),
       poster: typeof ld.image === "string" ? ld.image : "",
@@ -310,8 +312,8 @@ async function similarTo(f, ids = ["simBox", "simTitle", "simRecs"], verb = "wat
     const slug = f.slug || await findSlug(f.name, f.year);
     if (!slug) throw new Error("nofilm");
     const seenSlugs = new Set(data.films.map(x => x.slug).filter(Boolean)), seenDetail = detailSeen();
-    const list = (await similarList(slug)).filter(s => !seenSlugs.has(s)).slice(0, 36);
-    const details = (await pmap(list, getDetails, 7)).filter(d => d && !seenDetail(d)).slice(0, 30);
+    const list = (await relatedSlugs(slug)).filter(s => !seenSlugs.has(s) && s !== slug).slice(0, 44);
+    const details = (await pmap(list, getDetails, 7)).filter(d => d && !seenDetail(d)).slice(0, 38);
     $(ids[1]).textContent = "Because you " + verb + " " + f.name;
     const sd = await getDetails(slug).catch(() => null);
     renderRecs(details.map(d => ({ ...d, why: whyOf(d), fit: fitSim(d, sd, f.name) })), false, ids[2]);
@@ -348,15 +350,20 @@ async function recommend(append) {
       because.set(slug, b);
     }));
     const moods = [...document.querySelectorAll('.mood[aria-pressed="true"]')].map(b => b.textContent.trim());
-    const preds = moods.map(k => MOODS[k]).filter(Boolean).concat(textPreds($("extra").value));
+    const moodP = moods.map(k => MOODS[k]).filter(Boolean);
+    const textP = textPreds($("extra").value);
+    const preds = moodP.concat(textP);
+    const canon = await canonCandidates($("extra").value, moods).catch(() => []);
+    const canonMap = new Map(canon.map(c => [c.slug, c.note]));
     const maxRt = +$("len").value || 0;
     const dec = +$("decade").value || 0;
     const rtOk = m => (!maxRt || !m.runtime || m.runtime <= maxRt) && (!dec || (m.year && m.year >= dec && m.year < dec + 10));
     let cands = [...score.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0]);
     if (moods.includes("Surprise me")) cands = cands.slice(0, 50).sort(() => Math.random() - 0.5);
-    const limit = (preds.length || maxRt || dec) ? 60 : 14;
+    { const cs = canon.map(c => c.slug).filter(s => !seenSlugs.has(s)); cands = cs.concat(cands.filter(s => !cs.includes(s))); }
+    const limit = (preds.length || maxRt || dec || canon.length) ? 60 : 14;
     const details = (await pmap(cands.slice(0, limit), getDetails, 8)).filter(d => d && !seenDetail(d) && rtOk(d));
-    const hits = d => preds.filter(p => p(d)).length;
+    const hits = d => canonMap.has(d.slug) ? moodP.filter(p => p(d)).length + textP.length : preds.filter(p => p(d)).length;
     let picks = details.filter(d => hits(d) === preds.length), relaxed = false;
     const via = new Map();
     for (let round = 0; round < 2 && picks.length < 6 && preds.length; round++) {
@@ -381,7 +388,7 @@ async function recommend(append) {
     if (!picks.length) { setStatus("Nothing matched. Try fewer filters or a longer runtime.", true); return; }
     picks.forEach(d => shown.push(d.slug));
     $("out").hidden = false;
-    renderRecs(picks.map(d => ({ ...d, onWatchlist: wl.has(d.slug), because: because.get(d.slug) || [], why: whyOf(d) + (via.has(d.slug) ? ". Similar to " + via.get(d.slug) : "") })), append, "recs");
+    renderRecs(picks.map(d => ({ ...d, onWatchlist: wl.has(d.slug), because: because.get(d.slug) || [], note: canonMap.get(d.slug) || "", why: whyOf(d) + (via.has(d.slug) ? ". Similar to " + via.get(d.slug) : "") })), append, "recs");
     setStatus(relaxed ? "Few films matched every filter, so some are close matches." : "");
   } catch (e) { setStatus("Couldn't reach Letterboxd. Try again.", true); }
   finally { updateGo(); $("more").disabled = false; }
@@ -395,7 +402,7 @@ function renderRecs(list, append, target) {
     const li = document.createElement("li"); li.className = "rec";
     li.dataset.rating = r.rating || 0;
     li.dataset.idx = start + k;
-    li.innerHTML = '<div class="rank"></div><img class="rp" alt=""><div><h3></h3><div class="meta"></div><p class="desc"></p><p class="why"></p><p class="rated"></p><p class="themes"></p><p class="fit"></p><p class="because"></p><a target="_blank" rel="noopener">Open on Letterboxd ↗</a></div>';
+    li.innerHTML = '<div class="rank"></div><img class="rp" alt=""><div><h3></h3><div class="meta"></div><p class="desc"></p><p class="why"></p><p class="themes"></p><p class="rated"></p><p class="fit"></p><p class="because"></p><a target="_blank" rel="noopener">Open on Letterboxd ↗</a></div>';
     li.querySelector(".rank").textContent = start + k + 1;
     const im = li.querySelector(".rp");
     if (r.poster) { im.src = r.poster; im.referrerPolicy = "no-referrer"; } else im.remove();
@@ -474,6 +481,7 @@ function fitFor(r) {
   const text = ($("extra").value || "").trim();
   const sim = ($("similar").value || "").trim();
   const parts = [];
+  if (r.note) parts.push(r.note);
   if (text) parts.push("fits what you described (\u201c" + (text.length > 50 ? text.slice(0, 50) + "\u2026" : text) + "\u201d)");
   if (moods.length) parts.push("ticks your " + moods.join(" + ").toLowerCase() + " pick");
   if (sim) parts.push("is close to " + sim);
@@ -590,4 +598,105 @@ function ensureClose(box, ids) {
     box.parentElement.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   box.prepend(x);
+}
+
+async function listFrom(url) {
+  const doc = parseDoc(await getText(url));
+  const out = [], seen = new Set();
+  doc.querySelectorAll("[data-item-slug],[data-film-slug]").forEach(el => {
+    const s = el.dataset.itemSlug || el.dataset.filmSlug;
+    if (s && !seen.has(s)) { seen.add(s); out.push(s); }
+  });
+  return out;
+}
+async function relatedSlugs(slug) {
+  const sim = await similarList(slug).catch(() => []);
+  const sd = await getDetails(slug).catch(() => null);
+  let extra = [];
+  if (sd && sd.dirUrl) extra = (await listFrom("https://letterboxd.com" + sd.dirUrl).catch(() => [])).slice(0, 12);
+  let out = [...new Set([...sim.slice(0, 30), ...extra, ...sim.slice(30)])];
+  if (out.length < 8 && sd) {
+    for (const u of (sd.castUrls || [])) {
+      const l = await listFrom("https://letterboxd.com" + u).catch(() => []);
+      out = [...new Set([...out, ...l.slice(0, 10)])];
+    }
+  }
+  return out;
+}
+const DIRECTORS = { hitchcock: "alfred-hitchcock", kubrick: "stanley-kubrick", tarantino: "quentin-tarantino", nolan: "christopher-nolan", scorsese: "martin-scorsese", lynch: "david-lynch", kurosawa: "akira-kurosawa", bergman: "ingmar-bergman", fellini: "federico-fellini", godard: "jean-luc-godard", truffaut: "francois-truffaut", tarkovsky: "andrei-tarkovsky", "wes anderson": "wes-anderson", coppola: "francis-ford-coppola", spielberg: "steven-spielberg", villeneuve: "denis-villeneuve", fincher: "david-fincher", polanski: "roman-polanski", "wong kar-wai": "wong-kar-wai", "bong joon-ho": "bong-joon-ho", "park chan-wook": "park-chan-wook", almodovar: "pedro-almodovar", haneke: "michael-haneke", "von trier": "lars-von-trier", cronenberg: "david-cronenberg", kieslowski: "krzysztof-kieslowski", varda: "agnes-varda", ozu: "yasujiro-ozu", miyazaki: "hayao-miyazaki", herzog: "werner-herzog", wenders: "wim-wenders", welles: "orson-welles", chaplin: "charlie-chaplin", eisenstein: "sergei-m-eisenstein", godzilla: "ishiro-honda" };
+const CANON = [
+  ["vertigo", "hitchcock revolutionary technique dolly zoom camera important director changed cinema game innovative suspense", "pioneered the dolly zoom, the camera technique Hitchcock made famous"],
+  ["psycho", "hitchcock revolutionary technique editing shower important director changed cinema game innovative horror shocking", "changed cinema with its shower-scene editing and by killing off its star early"],
+  ["rope", "hitchcock revolutionary technique long take single take important director changed cinema game innovative experimental", "was staged to look like one unbroken take, an experiment only Hitchcock tried"],
+  ["rear-window", "hitchcock technique camera voyeur important director changed cinema innovative suspense", "turns one apartment window into a masterclass in point-of-view suspense"],
+  ["north-by-northwest", "hitchcock technique important director changed cinema innovative suspense chase", "invented the modern set-piece thriller with the crop-duster chase"],
+  ["the-birds", "hitchcock technique sound design important director changed cinema innovative horror", "built terror from silence and sound design instead of a score"],
+  ["citizen-kane", "welles revolutionary technique deep focus important director changed cinema game innovative cinematography nonlinear", "changed cinema with deep-focus photography and a fractured, non-linear structure"],
+  ["touch-of-evil", "welles technique long take important director changed cinema innovative noir cinematography", "opens with one of cinema's most famous long takes"],
+  ["breathless", "godard new wave revolutionary technique jump cut important director changed cinema game innovative", "popularised the jump cut and kicked off the French New Wave"],
+  ["the-400-blows", "truffaut new wave important director changed cinema innovative freeze frame", "helped launch the French New Wave with a raw, personal style"],
+  ["battleship-potemkin", "eisenstein revolutionary technique montage editing silent important director changed cinema game innovative", "established montage editing as a language of film"],
+  ["man-with-a-movie-camera", "vertov revolutionary technique experimental editing silent important director changed cinema innovative documentary", "throws every camera trick in the book into one silent experiment"],
+  ["2001-a-space-odyssey", "kubrick revolutionary technique special effects important director changed cinema game innovative scifi", "rewrote what visual effects and slow, wordless storytelling could do"],
+  ["the-shining", "kubrick technique steadicam important director changed cinema innovative horror", "made the Steadicam a storytelling tool"],
+  ["a-clockwork-orange", "kubrick important director changed cinema innovative", "mixed style and provocation in a way that changed what cinema dared to show"],
+  ["metropolis", "lang revolutionary technique special effects silent expressionism important director changed cinema game innovative scifi", "set the template for screen science fiction with its effects and design"],
+  ["the-cabinet-of-dr-caligari", "expressionism revolutionary technique silent important director changed cinema innovative horror", "defined German Expressionism with its painted, distorted sets"],
+  ["nosferatu", "murnau expressionism technique silent important director changed cinema innovative horror", "invented much of the visual language of screen horror"],
+  ["sunrise-a-song-of-two-humans", "murnau technique camera silent important director changed cinema innovative", "set free the moving camera in the silent era"],
+  ["rashomon", "kurosawa revolutionary technique narrative multiple perspectives important director changed cinema game innovative", "introduced the multiple-perspectives structure copied ever since"],
+  ["seven-samurai", "kurosawa technique action ensemble important director changed cinema innovative", "wrote the blueprint for the modern team-up action film"],
+  ["persona", "bergman experimental technique important director changed cinema innovative", "broke the fourth wall of cinema itself"],
+  ["a-trip-to-the-moon", "melies revolutionary technique special effects silent important director changed cinema game innovative scifi", "invented film special effects in 1902"],
+  ["the-passion-of-joan-of-arc", "dreyer technique close-up silent important director changed cinema innovative", "made the close-up an engine of emotion"],
+  ["un-chien-andalou", "bunuel surrealism experimental technique silent important director changed cinema innovative", "brought surrealism to the screen"],
+  ["bicycle-thieves", "de sica neorealism important director changed cinema innovative", "launched Italian neorealism with real streets and non-actors"],
+  ["stalker", "tarkovsky technique slow cinema important director changed cinema innovative", "turned time itself into a cinematic material"],
+  ["the-matrix", "revolutionary technique bullet time special effects changed cinema game innovative scifi", "popularised bullet time and changed action cinema"],
+  ["jaws", "spielberg technique blockbuster important director changed cinema game innovative suspense", "invented the summer blockbuster"],
+  ["the-godfather", "coppola important director changed cinema game innovative cinematography", "redefined American film with its dark, painterly look"],
+  ["apocalypse-now", "coppola technique important director changed cinema innovative war sound design", "pushed war cinema into hallucination and immersive sound"],
+  ["children-of-men", "cuaron technique long take camera important director changed cinema innovative", "uses long takes so immersive they changed how action is shot"],
+  ["russian-ark", "sokurov revolutionary technique single take experimental important director changed cinema innovative", "was shot as one continuous 96-minute take"],
+  ["run-lola-run", "tykwer technique editing experimental changed cinema innovative", "told one story three ways at breakneck speed"],
+  ["memento", "nolan technique nonlinear structure important director changed cinema innovative", "told its story backwards, changing how puzzle films work"],
+  ["pulp-fiction", "tarantino technique nonlinear structure important director changed cinema game innovative", "scrambled its timeline and reset 90s independent film"],
+  ["the-wizard-of-oz", "technicolor technique changed cinema innovative", "used Technicolor as part of the storytelling"],
+  ["tokyo-story", "ozu technique important director changed cinema innovative", "perfected the low, still camera that defines Ozu"],
+  ["pather-panchali", "ray important director changed cinema innovative neorealism", "introduced Indian cinema to the world"],
+  ["the-battle-of-algiers", "pontecorvo technique documentary style important director changed cinema innovative", "faked newsreel realism so well it was studied by real armies"],
+  ["jeanne-dielman-23-quai-du-commerce-1080-bruxelles", "akerman technique slow cinema important director changed cinema innovative", "turned real-time domestic routine into a landmark"],
+  ["toy-story", "pixar revolutionary technique computer animation changed cinema game innovative", "was the first fully computer-animated feature"],
+  ["snow-white-and-the-seven-dwarfs", "disney revolutionary technique animation changed cinema game innovative", "proved a feature-length animated film could work"],
+  ["avatar", "cameron revolutionary technique 3d motion capture special effects changed cinema game innovative scifi", "pushed 3D and performance capture into the mainstream"],
+  ["star-wars", "lucas revolutionary technique special effects changed cinema game innovative scifi", "redefined special effects and the blockbuster"],
+  ["the-blair-witch-project", "revolutionary technique found footage changed cinema game innovative horror", "launched the found-footage horror wave"],
+  ["spider-man-into-the-spider-verse", "revolutionary technique animation style changed cinema game innovative", "invented a comic-book animation look that others now copy"],
+  ["the-jazz-singer", "revolutionary technique sound talkie changed cinema game innovative", "brought sound to mainstream film"],
+  ["m", "lang technique sound important director changed cinema innovative thriller", "pioneered the use of sound as a plot device"],
+  ["the-general", "keaton technique silent stunts important director changed cinema innovative comedy", "built physical comedy into a cinematic spectacle"]
+];
+const STOPW = new Set("a an the of and or to in on at by for with that this was is are it its who which from as be been new into than then very more most much film films movie movies i want something like about me my some good one when what where how you your".split(" "));
+function pfx(w) { return w.slice(0, 6); }
+async function canonCandidates(text, moods) {
+  let t = (text || "").toLowerCase();
+  if ((moods || []).includes("Revolutionary / cinema history")) t += " revolutionary changed cinema";
+  const words = t.split(/[^a-z\u00c0-\u017f]+/).filter(w => w.length > 2 && !STOPW.has(w));
+  const toks = new Set(words.map(pfx));
+  if (!toks.size) return [];
+  const named = Object.keys(DIRECTORS).filter(k => new RegExp("\\b" + k.replace(/-/g, "[- ]") + "\\b").test(t));
+  const out = [];
+  const scored = CANON.map(([slug, tags, note], i) => {
+    let sc = 0;
+    new Set(tags.split(" ").map(pfx)).forEach(w => { if (toks.has(w)) sc++; });
+    named.forEach(k => { if (tags.includes(k.split(" ").pop().split("-")[0])) sc += 5; });
+    return { slug, note, sc, i };
+  }).filter(x => x.sc >= 3).sort((a, b) => b.sc - a.sc || a.i - b.i);
+  scored.slice(0, 14).forEach(x => out.push({ slug: x.slug, note: x.note }));
+  for (const k of named) {
+    const nm = k.replace(/\b\w/g, c => c.toUpperCase());
+    const l = await listFrom("https://letterboxd.com/director/" + DIRECTORS[k] + "/").catch(() => []);
+    l.slice(0, 14).forEach(s => { if (!out.some(o => o.slug === s)) out.push({ slug: s, note: "is a " + nm + " film, the director you named" }); });
+  }
+  return out;
 }
