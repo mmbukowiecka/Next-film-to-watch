@@ -186,3 +186,7 @@ select:hover{background-color:#566680!important}
 .mood.listmood{background:#4d5869!important;color:#00e054!important}
 .mood.listmood:hover{background:#5a667a!important}
 .mood.listmood[aria-pressed="true"]{background:#00e054!important;color:#4d5869!important}
+
+.mood.listmood{background:#2c3440!important;color:#00e054!important;font-weight:700!important}
+.mood.listmood:hover{background:#38424f!important;color:#33e676!important}
+.mood.listmood[aria-pressed="true"]{background:#00e054!important;color:#2c3440!important;font-weight:700!important}
