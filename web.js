@@ -541,6 +541,7 @@ function fitFor(r) {
   const text = ($("extra").value || "").trim();
   const sim = ($("similar").value || "").trim();
   const parts = [];
+  if (r.note) parts.push(r.note);
   if (text) parts.push("fits what you described (\u201c" + (text.length > 50 ? text.slice(0, 50) + "\u2026" : text) + "\u201d)");
   if (moods.length) parts.push("delivers on your " + moods.join(" + ").toLowerCase() + " pick");
   if (sim) parts.push("is close in feel to " + sim);
