@@ -283,6 +283,9 @@ const MOODS = {
   "4★+": m => m.rating >= 4,
   "Based on a true story": m => G(m, "History", "Crime", "Documentary", "War") && m.rating >= 3.6,
   "Documentary": m => G(m, "Documentary"),
+  "Romcom": m => (m.genres || []).includes("Romance") && (m.genres || []).includes("Comedy"),
+  "Comedy": m => G(m, "Comedy"),
+  "Sci-fi": m => G(m, "Science Fiction"),
   "Surprise me": () => true,
 };
 const WORDS = [
@@ -355,18 +358,26 @@ async function recommend(append) {
     const preds = moodP.concat(textP);
     const canon = await canonCandidates($("extra").value, moods).catch(() => []);
     const canonMap = new Map(canon.map(c => [c.slug, c.note]));
+    const dirName = ($("director").value || "").trim();
+    let dirList = [];
+    if (dirName) {
+      const dl = await directorFilms(dirName).catch(() => null);
+      if (!dl || !dl.slugs.length) { setStatus("Couldn\u2019t find a director called \u201c" + dirName + "\u201d.", true); return; }
+      dirList = dl.slugs; dl.slugs.forEach(s => canonMap.set(s, "is a film by " + dl.name + ", the director you picked"));
+    }
     const maxRt = +$("len").value || 0;
     const dec = +$("decade").value || 0;
-    const rtOk = m => (!maxRt || !m.runtime || m.runtime <= maxRt) && (!dec || (m.year && m.year >= dec && m.year < dec + 10));
+    const rtOk = m => (!maxRt || !m.runtime || m.runtime <= maxRt) && (!dec || (m.year && (dec < 0 ? m.year < 1920 : (m.year >= dec && m.year < dec + 10))));
     let cands = [...score.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0]);
     if (moods.includes("Surprise me")) cands = cands.slice(0, 50).sort(() => Math.random() - 0.5);
     { const cs = canon.map(c => c.slug).filter(s => !seenSlugs.has(s)); cands = cs.concat(cands.filter(s => !cs.includes(s))); }
-    const limit = (preds.length || maxRt || dec || canon.length) ? 60 : 14;
+    if (dirList.length) cands = dirList.filter(s => !seenSlugs.has(s));
+    const limit = (preds.length || maxRt || dec || canon.length || dirList.length) ? 60 : 14;
     const details = (await pmap(cands.slice(0, limit), getDetails, 8)).filter(d => d && !seenDetail(d) && rtOk(d));
     const hits = d => canonMap.has(d.slug) ? moodP.filter(p => p(d)).length + textP.length : preds.filter(p => p(d)).length;
     let picks = details.filter(d => hits(d) === preds.length), relaxed = false;
     const via = new Map();
-    for (let round = 0; round < 2 && picks.length < 6 && preds.length; round++) {
+    for (let round = 0; round < 2 && picks.length < 6 && preds.length && !dirList.length; round++) {
       const from = (picks.length ? picks : details.filter(d => hits(d) > 0)).slice(0, 6);
       if (!from.length) break;
       const more = await pmap(from, d => similarList(d.slug), 5);
@@ -702,3 +713,19 @@ async function canonCandidates(text, moods) {
 }
 
 { const clearUser = () => { if (!data) $("user").value = ""; }; clearUser(); window.addEventListener("pageshow", clearUser); setTimeout(clearUser, 300); }
+
+async function directorFilms(name) {
+  const key = name.toLowerCase().trim();
+  let slug = null;
+  const hit = Object.keys(DIRECTORS).find(k => k === key || k.split(" ").pop() === key);
+  if (hit) slug = DIRECTORS[hit];
+  else {
+    const d = parseDoc(await getText("https://letterboxd.com/s/search/cast-crew/" + encodeURIComponent(name) + "/"));
+    const a = [...d.querySelectorAll('a[href^="/director/"]')][0];
+    if (a) slug = a.getAttribute("href").split("/")[2];
+  }
+  if (!slug) return null;
+  const p1 = await listFrom("https://letterboxd.com/director/" + slug + "/").catch(() => []);
+  const p2 = await listFrom("https://letterboxd.com/director/" + slug + "/page/2/").catch(() => []);
+  return { name: slug.replace(/-/g, " ").replace(/\b\w/g, ch => ch.toUpperCase()), slugs: [...new Set([...p1, ...p2])] };
+}

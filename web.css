@@ -127,3 +127,6 @@ select:hover{background-color:#566680!important}
 .rec{position:relative}
 .rec h3{padding-right:76px}
 .ratebadge{position:absolute;top:10px;right:12px;background:#2c3440;border:1px solid #456;color:#00e054;border-radius:6px;padding:3px 10px;font-weight:700;font-size:14px}
+
+#director{flex:1 1 auto;min-width:0}
+.row + .row{margin-top:10px}
