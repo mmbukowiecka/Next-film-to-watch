@@ -372,6 +372,7 @@ async function recommend(append) {
     if (moods.includes("Surprise me")) cands = cands.slice(0, 50).sort(() => Math.random() - 0.5);
     { const cs = canon.map(c => c.slug).filter(s => !seenSlugs.has(s)); cands = cs.concat(cands.filter(s => !cs.includes(s))); }
     if (dirList.length) cands = dirList.filter(s => !seenSlugs.has(s));
+    else if (dec && DECADE_SEEDS[dec]) { const ds = DECADE_SEEDS[dec].filter(s => !seenSlugs.has(s)); cands = ds.concat(cands.filter(s => !ds.includes(s))); }
     const limit = (preds.length || maxRt || dec || canon.length || dirList.length) ? 60 : 14;
     const details = (await pmap(cands.slice(0, limit), getDetails, 8)).filter(d => d && !seenDetail(d) && rtOk(d));
     const hits = d => canonMap.has(d.slug) ? moodP.filter(p => p(d)).length + textP.length : preds.filter(p => p(d)).length;
@@ -729,3 +730,9 @@ async function directorFilms(name) {
   const p2 = await listFrom("https://letterboxd.com/director/" + slug + "/page/2/").catch(() => []);
   return { name: slug.replace(/-/g, " ").replace(/\b\w/g, ch => ch.toUpperCase()), slugs: [...new Set([...p1, ...p2])] };
 }
+
+const DECADE_SEEDS = {
+  "-1": ["a-trip-to-the-moon", "the-great-train-robbery", "cabiria", "the-student-of-prague-1913", "les-vampires", "the-adventurer-1917", "shoulder-arms", "easy-street", "traffic-in-souls", "the-lonely-villa"],
+  "1920": ["the-golem-1920", "the-gold-rush", "sherlock-jr", "the-last-laugh", "safety-last", "the-general", "la-roue", "nanook-of-the-north", "greed", "nosferatu", "metropolis", "battleship-potemkin", "the-passion-of-joan-of-arc"],
+  "1930": ["city-lights", "m", "modern-times", "frankenstein-1931", "dracula-1931", "vampyr", "zero-de-conduite", "it-happened-one-night", "the-thin-man", "top-hat", "stagecoach", "mr-smith-goes-to-washington", "the-adventures-of-robin-hood", "ninotchka", "bringing-up-baby"]
+};
