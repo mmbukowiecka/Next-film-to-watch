@@ -6,7 +6,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,400;1,9..144,600&amp;family=Hanken+Grotesk:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,400;6..72,600&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="web.css?v=2">
+<link rel="stylesheet" href="web.css?v=3">
 </head>
 <body>
 <div class="wrap">
@@ -34,7 +34,7 @@
     <div class="stats" id="stats"></div>
   </section>
 
-  <div id="persWrap" hidden=""><button type="button" class="persbtn" id="pers" aria-expanded="false">Personalise your recommendation list</button><div class="panel perspanel" id="persPanel" hidden=""><div class="incrow"><button type="button" class="incbtn" data-sec="secDesc">Include description</button><button type="button" class="incbtn" data-sec="secFilt">Include filters</button><button type="button" class="incbtn" data-sec="secLists">Include movies from Letterboxd lists</button></div><div class="incsec" id="secDesc" hidden=""><div class="sechead"><span class="sectitle">Description</span><button type="button" class="secx" data-sec="secDesc" aria-label="Remove">✕</button></div><textarea id="extra" rows="3" placeholder="Describe it in your own words, whatever is in your head"></textarea><p class="hint">I pick up keywords in your description, like horror, comedy, sci-fi, thriller, romance, war, 70s or 90s.</p></div><div class="incsec" id="secFilt" hidden=""><div class="sechead"><span class="sectitle">Filters</span><button type="button" class="secx" data-sec="secFilt" aria-label="Remove">✕</button></div><div class="row">
+  <div id="persWrap" hidden="" class="panel"><h2>Fine-tune your shortlist</h2><button type="button" class="persbtn" id="pers" aria-expanded="false">Personalise your recommendation list</button><div class="perspanel" id="persPanel" hidden=""><div class="incrow"><button type="button" class="incbtn" data-sec="secDesc">Include description</button><button type="button" class="incbtn" data-sec="secFilt">Include filters</button><button type="button" class="incbtn" data-sec="secLists">Include movies from Letterboxd lists</button></div><div class="incsec" id="secDesc" hidden=""><div class="sechead"><span class="sectitle">Description</span><button type="button" class="secx" data-sec="secDesc" aria-label="Remove">✕</button></div><textarea id="extra" rows="3" placeholder="Describe it in your own words, whatever is in your head"></textarea><p class="hint">I pick up keywords in your description, like horror, comedy, sci-fi, thriller, romance, war, 70s or 90s.</p></div><div class="incsec" id="secFilt" hidden=""><div class="sechead"><span class="sectitle">Filters</span><button type="button" class="secx" data-sec="secFilt" aria-label="Remove">✕</button></div><div class="row">
       <input type="text" id="similar" placeholder="Similar to this film… (type a title)" autocomplete="off">
       <select id="len" aria-label="Runtime">
         <option value="100">Up to 1h 40</option>
@@ -53,9 +53,9 @@
       <div class="moods" id="moods2"><div class="moodrow"><button type="button" class="mood listmood" data-p="What is reality?">What is reality?</button><button type="button" class="mood listmood" data-p="Hopeless cinema">Hopeless cinema</button><button type="button" class="mood listmood" data-p="Feeling lost in your 20’s">Feeling lost in your 20’s</button><button type="button" class="mood listmood" data-p="Good Films, 90 Minutes or Less">Good Films, 90 Minutes or Less</button></div></div>
     </div></div><div class="row actions2 center"><button type="button" class="bluebtn" id="upd">Update list</button></div><div class="status" id="pstatus"></div></div></div>
 
-  <section class="panel" id="out" hidden=""><div class="row between"><h2>Films for all of you</h2><span class="rfs"><button type="button" class="ghost rf" data-min="0" aria-pressed="true">Most similar</button><button type="button" class="ghost rf" data-min="3.5" aria-pressed="false">3.5★+</button><button type="button" class="ghost rf" data-min="4" aria-pressed="false">4★+</button></span><span><button class="ghost" id="more">Show 10 more</button> <button class="ghost" id="clear">Clear recommendations</button></span></div><p class="hint" id="recNone" hidden="">No films match that rating yet.</p><ol class="recs" id="recs"></ol></section>
+  <section class="panel" id="out" hidden=""><div class="row between"><h2>Your shortlist</h2><span class="rfs"><button type="button" class="ghost rf" data-min="0" aria-pressed="true">Most similar</button><button type="button" class="ghost rf" data-min="3.5" aria-pressed="false">3.5★+</button><button type="button" class="ghost rf" data-min="4" aria-pressed="false">4★+</button></span><span><button class="ghost" id="more">Show 10 more</button> <button class="ghost" id="clear">Clear recommendations</button></span></div><p class="hint" id="recNone" hidden="">No films match that rating yet.</p><ol class="recs" id="recs"></ol></section>
 </div>
-<script src="together.js?v=2"></script>
+<script src="together.js?v=3"></script>
 
 
 </body></html>

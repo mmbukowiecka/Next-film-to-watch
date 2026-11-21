@@ -6,7 +6,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,400;1,9..144,600&amp;family=Hanken+Grotesk:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,400;6..72,600&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="web.css?v=2">
+<link rel="stylesheet" href="web.css?v=3">
 </head>
 <body>
 <div class="wrap">
@@ -40,7 +40,7 @@
     <div id="simBox" hidden=""><div class="label" id="simTitle"></div><ol class="recs" id="simRecs"></ol></div>
   </section>
 
-  <section class="panel" id="askPanel" hidden="">
+  <section class="panel" id="askPanel" hidden=""><h2>What do you want to watch?</h2>
     <div class="persbar"><button type="button" class="persbtn" id="persToggle" aria-expanded="false">Personalise your recommendation list</button></div><div id="persBox" hidden=""><div class="incrow"><button type="button" class="incbtn" data-sec="secDesc">Include description</button><button type="button" class="incbtn" data-sec="secFilt">Include filters</button><button type="button" class="incbtn" data-sec="secLists">Include movies from Letterboxd lists</button></div><div class="incsec" id="secDesc" hidden=""><div class="sechead"><span class="sectitle">Description</span><button type="button" class="secx" data-sec="secDesc" aria-label="Remove">✕</button></div><textarea id="extra" rows="3" placeholder="Describe it in your own words, whatever is in your head"></textarea><p class="hint">I pick up keywords in your description, like horror, comedy, sci-fi, thriller, romance, war, 70s or 90s.</p></div><div class="incsec" id="secFilt" hidden=""><div class="sechead"><span class="sectitle">Filters</span><button type="button" class="secx" data-sec="secFilt" aria-label="Remove">✕</button></div><div class="row">
       <input type="text" id="similar" placeholder="Similar to this film… (type a title)" autocomplete="off">
       <select id="len" aria-label="Runtime">

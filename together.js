@@ -244,6 +244,39 @@ async function directorFilms(name) {
   const p2 = await listFrom("https://letterboxd.com/director/" + slug + "/page/2/").catch(() => []);
   return { name: slug.replace(/-/g, " ").replace(/\b\w/g, ch => ch.toUpperCase()), slugs: [...new Set([...p1, ...p2])] };
 }
+async function loadTop500() {
+  if (window.__top500) return window.__top500;
+  window.__top500 = (async () => {
+    const base = "https://letterboxd.com/official/list/letterboxds-top-500-films/";
+    const map = {};
+    const pages = await pmap([1, 2, 3, 4, 5], p => getText(p === 1 ? base : base + "page/" + p + "/"), 3);
+    pages.forEach((t, pi) => {
+      if (!t) return;
+      let idx = 0;
+      parseDoc(t).querySelectorAll("[data-item-slug],[data-film-slug]").forEach(e => {
+        const s = e.dataset.itemSlug || e.dataset.filmSlug;
+        if (s && !(s in map)) map[s] = pi * 100 + (++idx);
+      });
+    });
+    window.__top500Map = map;
+    return map;
+  })();
+  return window.__top500;
+}
+function decorateCrowns() {
+  const map = window.__top500Map;
+  if (!map) return;
+  document.querySelectorAll(".rec").forEach(li => {
+    const rank = map[li.dataset.slug];
+    if (!rank || li.querySelector(".crown")) return;
+    let wr = li.querySelector(".ratewrap");
+    if (!wr) { wr = document.createElement("div"); wr.className = "ratewrap"; li.append(wr); }
+    const cr = document.createElement("span"); cr.className = "crown"; cr.title = "Letterboxd\u2019s Top 500 Films, rank " + rank;
+    cr.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M2.5 19h19l1.2-11.5-5.2 4.2L12 4.5 6.5 11.7 1.3 7.5z" fill="#e6c229"/></svg>';
+    cr.append(document.createTextNode(String(rank)));
+    wr.prepend(cr);
+  });
+}
 let ctx = null, ranked = [], shownN = 0;
 async function run() {
   const names = [];
@@ -401,7 +434,7 @@ function card(r, d, n) {
   const chip = document.createElement("span"); chip.className = "wl"; chip.textContent = !r.users.size ? (sim ? "Similar to " + sim.name : "From your filters") : (r.users.size >= total ? "Matches all " + total + " of you" : "Matches " + r.users.size + " of " + total); h.append(chip);
   li.querySelector(".meta").textContent = [d.director, d.runtime && d.runtime + " min"].filter(Boolean).join(" \u00b7 ");
   li.querySelector(".desc").textContent = d.desc || "";
-  li.querySelector(".why").textContent = (d.genres || []).slice(0, 3).join(", ");
+  li.querySelector(".why").textContent = (d.genres || []).slice(0, 3).join(", "); { var thm = (d.themes || []).slice(0, 3); if (thm.length) { var tp = document.createElement("p"); tp.className = "themes"; tp.textContent = "Themes: " + thm.join(" \u00b7 "); li.querySelector(".why").after(tp); } }
   const fit = li.querySelector(".fit"); const b = document.createElement("strong"); b.textContent = "Why you might all like it: "; fit.append(b, document.createTextNode(reason(r)));
   const sb = ctx.seen.get(r.slug); if (sb && sb.length) fit.append(document.createTextNode(" Already seen by " + joinNames(sb) + "."));
   li.querySelector("a").href = "https://letterboxd.com/film/" + r.slug + "/";
@@ -417,10 +450,10 @@ async function showMore() {
     if (my !== rid) return;
     chunk.forEach(function (r, k) {
       var d = det[k];
-      if (d && passes(d)) { shownN++; var li = card(r, d, shownN); li.dataset.rt = d.rating || 0; $("recs").append(li); added++; }
+      if (d && passes(d)) { shownN++; var li = card(r, d, shownN); li.dataset.rt = d.rating || 0; li.dataset.slug = r.slug; $("recs").append(li); added++; }
     });
   }
-  applyRf();
+  applyRf(); loadTop500().then(decorateCrowns).catch(function () {});
   var left = ranked.length - pos;
   $("more").hidden = left <= 0; $("more").disabled = false; $("more").textContent = "Show " + Math.min(10, left) + " more";
   if (!shownN && left <= 0) status("No films matched those choices. Try loosening them, or untick the box.", true); else status("");
