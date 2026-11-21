@@ -432,7 +432,7 @@ document.querySelectorAll("#persPanel .mood").forEach(function (b) { b.onclick =
 ["similar", "director"].forEach(function (x) { $(x).addEventListener("keydown", function (e) { if (e.key === "Enter") updateList(); }); });
 window.onSecCleared = updateList;
 initPers("pers", "persPanel");
-setMode("alone"); $("modeAlone").onclick = function (e) { e.preventDefault(); setMode("alone"); }; $("modeOthers").onclick = function (e) { e.preventDefault(); setMode("others"); };
+setMode("alone"); 
 
 
 function initPers(btnId, boxId) {
@@ -522,3 +522,52 @@ async function run() {
   $("find").disabled = false;
 }
 $("find").onclick = run;
+
+
+function syncDel2() {
+  var rows = document.querySelectorAll(".nrow");
+  rows.forEach(function (r) { r.classList.toggle("solo", rows.length === 1); r.querySelector(".pdel").hidden = rows.length <= 1; });
+  $("people").closest("section").querySelector("h2").textContent = rows.length === 1 ? "Which films do you love?" : "Who is watching, and what do they love?";
+}
+function addRow() {
+  var d = document.createElement("div"); d.className = "nrow";
+  d.innerHTML = '<input class="puser" type="text" placeholder="Name (optional)" autocomplete="off"><input class="pfavs" type="text" placeholder="Films you love, separated by commas" autocomplete="off"><button type="button" class="pdel" aria-label="Remove">✕</button>';
+  d.querySelector(".pdel").onclick = function () { d.remove(); syncDel2(); };
+  $("people").append(d); syncDel2();
+}
+function setMode() {
+  ctx = null; rid++; $("people").innerHTML = ""; addRow(); $("addp").hidden = false;
+  $("out").hidden = true; $("persWrap").hidden = true; status("");
+}
+async function run() {
+  var rows = [].slice.call(document.querySelectorAll(".nrow")), people = [];
+  rows.forEach(function (r, i) {
+    var favs = r.querySelector(".pfavs").value.split(/[,;\n]+/).map(function (x) { return x.trim(); }).filter(Boolean).slice(0, 8);
+    var nm = rows.length === 1 ? "you" : (r.querySelector(".puser").value.trim() || "Person " + (i + 1));
+    if (favs.length) people.push({ name: nm, favs: favs });
+  });
+  if (!people.length) return status("Type at least one film you love.", true);
+  if (rows.length > 1 && people.length < 2) return status("Add films for at least two people, or remove a row.", true);
+  $("find").disabled = true; $("out").hidden = true; sim = null; curF = null; resetPers();
+  try {
+    var cand = new Map(), seen = new Map(), missed = [];
+    for (var pi = 0; pi < people.length; pi++) {
+      var p = people[pi];
+      status("Finding films like " + (rows.length === 1 ? "your" : p.name + "’s") + " favourites…");
+      var res = await pmap(p.favs, async function (t) {
+        var s = await findSlug(t, null); if (!s) return null;
+        var l = await similarList(s).catch(function () { return []; }); return { t: t, s: s, l: l };
+      }, 3);
+      res.forEach(function (x, k) {
+        if (!x) { missed.push(p.favs[k]); return; }
+        seen.set(x.s, [p.name]);
+        x.l.forEach(function (s) { var c = cand.get(s); if (!c) { c = { wl: new Set(), sim: new Map() }; cand.set(s, c); } if (!c.sim.has(p.name)) c.sim.set(p.name, []); c.sim.get(p.name).push(x.t); });
+      });
+    }
+    if (!cand.size) throw new Error("Couldn’t find those films on Letterboxd. Check the spelling.");
+    ctx = { people: people, seen: seen, cand: cand };
+    await updateList();
+    if (missed.length) status("Couldn’t find: " + missed.join(", ") + ".", true);
+  } catch (e) { status(e.message || "Something went wrong.", true); }
+  $("find").disabled = false;
+}
