@@ -451,7 +451,7 @@ function renderRecs(list, append, target) {
     { const tl = li.querySelector(".themes"); let s = ""; (r.themes || []).slice(0, 3).forEach(t => { const n = s ? s + " \u00b7 " + t : t; if (!s || n.length <= 88) s = n; }); if (s) tl.textContent = "Themes: " + s; else tl.remove(); }
     lblFix(li); li.querySelector(".fit").innerHTML = "";
     { const ft = r.fit || (target === "recs" ? fitFor(r) : ""); if (ft) { const b = document.createElement("b"); b.textContent = "Why you'll like it: "; li.querySelector(".fit").append(b, document.createTextNode(ft)); } else li.querySelector(".fit").remove(); }
-    li.querySelector(".because").textContent = r.because && r.because.length ? "Because you rated highly: " + r.because.join(", ") : "";
+    { const bq = li.querySelector(".because"); bq.textContent = ""; if (r.because && r.because.length) { const bb = document.createElement("b"); bb.textContent = "Because you rated highly: "; bq.append(bb, document.createTextNode(r.because.join(", "))); } }
     li.querySelector("a").href = "https://letterboxd.com/film/" + r.slug + "/";
     ol.append(li);
   });
