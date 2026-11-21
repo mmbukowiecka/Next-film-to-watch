@@ -316,3 +316,6 @@ header p a{color:#40bcf4}
 #out>.row.between>span:last-child{margin-left:auto}
 #out .rf,#out #more,#out #clear{font-size:15px!important;height:40px;padding:0 18px!important}
 #out .rf{min-width:96px}
+
+/* v9 */
+#persWrap{margin-top:-18px!important}

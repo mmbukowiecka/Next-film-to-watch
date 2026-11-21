@@ -353,9 +353,9 @@ async function updateList() {
     var slugs = sets.length ? [...sets[0]].filter(function (s) { return sets.every(function (x) { return x.has(s); }); }) : [...ctx.cand.keys()];
     ranked = slugs.filter(function (s) { return !onlyUnseen || !ctx.seen.has(s); }).map(function (s) {
       var c = ctx.cand.get(s) || { wl: new Set(), sim: new Map() };
-      var users = new Set([...c.wl, ...c.sim.keys()]); var hits = 0; c.sim.forEach(function (a) { hits += a.length; });
-      return { slug: s, c: c, users: users, note: notes.get(s) || "", score: users.size * 10 + c.wl.size * 4 + Math.min(hits, 6) + (sim ? 8 : 0) + Math.random() };
-    }).sort(function (a, b) { return b.score - a.score; }).slice(0, 250);
+      var users = new Set([...c.wl, ...c.sim.keys(), ...(c.near || [])]); var hits = 0; c.sim.forEach(function (a) { hits += a.length; });
+      return { slug: s, c: c, users: users, note: notes.get(s) || "", score: users.size * 10 + c.sim.size * 3 + c.wl.size * 4 + Math.min(hits, 6) + (sim ? 8 : 0) + Math.random() };
+    }).sort(function (a, b) { return b.score - a.score; }).slice(0, 250); ranked = balance(ranked);
     pos = 0; shownN = 0;
     $("recs").innerHTML = ""; $("out").hidden = false; $("persWrap").hidden = false; $("recNone").hidden = true; $("more").hidden = true; status("");
     pst(sim ? "Showing films similar to " + sim.name + "." : "");
@@ -515,6 +515,15 @@ async function run() {
       });
     }
     if (!cand.size) throw new Error("Couldn’t find those films on Letterboxd. Check the spelling.");
+    if (people.length > 1) {
+      status("Looking for films you’d all enjoy…");
+      for (var qi = 0; qi < people.length; qi++) {
+        var qp = people[qi];
+        var seeds = [...cand.entries()].filter(function (e) { return e[1].sim.has(qp.name); }).sort(function (a, b) { return b[1].sim.get(qp.name).length - a[1].sim.get(qp.name).length; }).slice(0, 8).map(function (e) { return e[0]; });
+        var nl = await pmap(seeds, function (s) { return similarList(s).catch(function () { return []; }); }, 4);
+        nl.forEach(function (l) { l.forEach(function (s) { if (seen.has(s)) return; var c = cand.get(s); if (!c) { c = { wl: new Set(), sim: new Map() }; cand.set(s, c); } if (!c.sim.has(qp.name)) { c.near = c.near || new Set(); c.near.add(qp.name); } }); });
+      }
+    }
     ctx = { people: people, seen: seen, cand: cand };
     await updateList();
     if (missed.length) status("Couldn’t find: " + missed.join(", ") + ".", true);
@@ -565,9 +574,34 @@ async function run() {
       });
     }
     if (!cand.size) throw new Error("Couldn’t find those films on Letterboxd. Check the spelling.");
+    if (people.length > 1) {
+      status("Looking for films you’d all enjoy…");
+      for (var qi = 0; qi < people.length; qi++) {
+        var qp = people[qi];
+        var seeds = [...cand.entries()].filter(function (e) { return e[1].sim.has(qp.name); }).sort(function (a, b) { return b[1].sim.get(qp.name).length - a[1].sim.get(qp.name).length; }).slice(0, 8).map(function (e) { return e[0]; });
+        var nl = await pmap(seeds, function (s) { return similarList(s).catch(function () { return []; }); }, 4);
+        nl.forEach(function (l) { l.forEach(function (s) { if (seen.has(s)) return; var c = cand.get(s); if (!c) { c = { wl: new Set(), sim: new Map() }; cand.set(s, c); } if (!c.sim.has(qp.name)) { c.near = c.near || new Set(); c.near.add(qp.name); } }); });
+      }
+    }
     ctx = { people: people, seen: seen, cand: cand };
     await updateList();
     if (missed.length) status("Couldn’t find: " + missed.join(", ") + ".", true);
   } catch (e) { status(e.message || "Something went wrong.", true); }
   $("find").disabled = false;
+}
+
+function balance(arr) {
+  var total = ctx.people.length; if (total < 2) return arr;
+  var full = arr.filter(function (r) { return r.users.size >= total; });
+  var rest = arr.filter(function (r) { return r.users.size < total; });
+  var by = new Map(); rest.forEach(function (r) { var u = [...r.users].sort()[0] || "_"; if (!by.has(u)) by.set(u, []); by.get(u).push(r); });
+  var q = [...by.values()], out = [];
+  while (q.some(function (a) { return a.length; })) q.forEach(function (a) { if (a.length) out.push(a.shift()); });
+  return full.concat(out);
+}
+function reason(r) {
+  var t = reason0(r), nr = r.c.near ? [...r.c.near] : [];
+  if (t === ".") return nr.length ? "It’s close to what " + joinNames(nr) + (nr.length > 1 ? " love." : " loves.") : "It " + (r.note || "fits the filters you picked") + ".";
+  t = t.replace(/you’s favourite/g, "your favourite");
+  return nr.length ? t.slice(0, -1) + ", and it’s close to what " + joinNames(nr) + (nr.length > 1 ? " love." : " loves.") : t;
 }
