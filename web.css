@@ -268,3 +268,13 @@ button.incbtn[data-sec="secLists"],#secLists{order:3}
 #askPanel>.row.actions{margin-top:26px}
 .rec .why,.rec .themes{color:#e6c229!important}
 .rec .fit strong,.rec .fit b{color:#00e054!important}
+
+/* v4 */
+#persWrap{text-align:left;margin-bottom:30px}
+#persWrap>h2{text-align:left}
+#out>.row.between{align-items:flex-end}
+.rec .why,.rec .themes{color:#fff!important}
+.rec .lbl{color:#e6c229!important}
+.incsec .mood{font-size:13.5px!important;padding:7px 9px!important}
+.incsec input,.incsec select,.incsec textarea{font-size:15px!important}
+.incsec .hint{font-size:13px!important}

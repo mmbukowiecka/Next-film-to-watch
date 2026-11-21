@@ -434,7 +434,7 @@ function card(r, d, n) {
   const chip = document.createElement("span"); chip.className = "wl"; chip.textContent = !r.users.size ? (sim ? "Similar to " + sim.name : "From your filters") : (r.users.size >= total ? "Matches all " + total + " of you" : "Matches " + r.users.size + " of " + total); h.append(chip);
   li.querySelector(".meta").textContent = [d.director, d.runtime && d.runtime + " min"].filter(Boolean).join(" \u00b7 ");
   li.querySelector(".desc").textContent = d.desc || "";
-  li.querySelector(".why").textContent = (d.genres || []).slice(0, 3).join(", "); { var thm = (d.themes || []).slice(0, 3); if (thm.length) { var tp = document.createElement("p"); tp.className = "themes"; tp.textContent = "Themes: " + thm.join(" \u00b7 "); li.querySelector(".why").after(tp); } }
+  li.querySelector(".why").textContent = (d.genres || []).length ? "Genres: " + d.genres.slice(0, 3).join(" \u00b7 ") : ""; { var thm = (d.themes || []).slice(0, 3); if (thm.length) { var tp = document.createElement("p"); tp.className = "themes"; tp.textContent = "Themes: " + thm.join(" \u00b7 "); li.querySelector(".why").after(tp); } }
   const fit = li.querySelector(".fit"); const b = document.createElement("strong"); b.textContent = "Why you might all like it: "; fit.append(b, document.createTextNode(reason(r)));
   const sb = ctx.seen.get(r.slug); if (sb && sb.length) fit.append(document.createTextNode(" Already seen by " + joinNames(sb) + "."));
   li.querySelector("a").href = "https://letterboxd.com/film/" + r.slug + "/";
@@ -450,7 +450,7 @@ async function showMore() {
     if (my !== rid) return;
     chunk.forEach(function (r, k) {
       var d = det[k];
-      if (d && passes(d)) { shownN++; var li = card(r, d, shownN); li.dataset.rt = d.rating || 0; li.dataset.slug = r.slug; $("recs").append(li); added++; }
+      if (d && passes(d)) { shownN++; var li = card(r, d, shownN); li.dataset.rt = d.rating || 0; li.dataset.slug = r.slug; lblFix(li); $("recs").append(li); added++; }
     });
   }
   applyRf(); loadTop500().then(decorateCrowns).catch(function () {});
@@ -499,4 +499,15 @@ function initPers(btnId, boxId) {
     btn.textContent = open ? "Hide personalisation" : "Personalise your recommendation list";
     if (!open) { SEC.forEach(function (id) { clearSec(id); show(id, false); }); if (window.onSecCleared) window.onSecCleared(); }
   };
+}
+
+
+function lblFix(li) {
+  [".why", ".themes"].forEach(function (s) {
+    var el = li.querySelector(s); if (!el) return;
+    var m = /^(Genres?|Themes):\s*([\s\S]*)$/.exec(el.textContent); if (!m) return;
+    el.textContent = ""; var sp = document.createElement("span"); sp.className = "lbl";
+    sp.textContent = m[1] === "Themes" ? "Themes: " : "Genre: ";
+    el.append(sp, document.createTextNode(m[2]));
+  });
 }

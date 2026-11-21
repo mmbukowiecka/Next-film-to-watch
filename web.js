@@ -449,7 +449,7 @@ function renderRecs(list, append, target) {
     li.querySelector(".rated").remove();
     if (r.rating) { const bd = document.createElement("div"); bd.className = "ratebadge"; bd.title = "Letterboxd members' average rating"; bd.textContent = Number(r.rating).toFixed(1) + " \u2605"; const wr = document.createElement("div"); wr.className = "ratewrap"; wr.append(bd); li.append(wr); }
     { const tl = li.querySelector(".themes"); let s = ""; (r.themes || []).slice(0, 3).forEach(t => { const n = s ? s + " \u00b7 " + t : t; if (!s || n.length <= 88) s = n; }); if (s) tl.textContent = "Themes: " + s; else tl.remove(); }
-    li.querySelector(".fit").innerHTML = "";
+    lblFix(li); li.querySelector(".fit").innerHTML = "";
     { const ft = r.fit || (target === "recs" ? fitFor(r) : ""); if (ft) { const b = document.createElement("b"); b.textContent = "Why you'll like it: "; li.querySelector(".fit").append(b, document.createTextNode(ft)); } else li.querySelector(".fit").remove(); }
     li.querySelector(".because").textContent = r.because && r.because.length ? "Because you rated highly: " + r.because.join(", ") : "";
     li.querySelector("a").href = "https://letterboxd.com/film/" + r.slug + "/";
@@ -861,3 +861,14 @@ function initPers(btnId, boxId) {
   };
 }
 initPers("persToggle", "persBox");
+
+
+function lblFix(li) {
+  [".why", ".themes"].forEach(function (s) {
+    var el = li.querySelector(s); if (!el) return;
+    var m = /^(Genres?|Themes):\s*([\s\S]*)$/.exec(el.textContent); if (!m) return;
+    el.textContent = ""; var sp = document.createElement("span"); sp.className = "lbl";
+    sp.textContent = m[1] === "Themes" ? "Themes: " : "Genre: ";
+    el.append(sp, document.createTextNode(m[2]));
+  });
+}
