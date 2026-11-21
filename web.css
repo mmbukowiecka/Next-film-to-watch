@@ -203,3 +203,5 @@ select:hover{background-color:#566680!important}
 button#surprise:hover,button#surprise:hover:not(:disabled),button#surprise:focus{background:#e5383b!important;color:#000!important}
 
 #askPanel[hidden]{display:none!important}
+
+.row.actions{justify-content:center!important}
