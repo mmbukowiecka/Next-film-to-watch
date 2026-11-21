@@ -412,7 +412,8 @@ function renderRecs(list, append, target) {
     li.querySelector(".meta").textContent = [r.director, r.runtime && r.runtime + " min"].filter(Boolean).join(" · ");
     li.querySelector(".desc").textContent = r.desc || "";
     li.querySelector(".why").textContent = r.why || "";
-    li.querySelector(".rated").textContent = r.rating ? "Rated " + Number(r.rating).toFixed(1) + "\u2605 by Letterboxd members" : "";
+    li.querySelector(".rated").remove();
+    if (r.rating) { const bd = document.createElement("div"); bd.className = "ratebadge"; bd.title = "Letterboxd members' average rating"; bd.textContent = Number(r.rating).toFixed(1) + " \u2605"; li.append(bd); }
     { const tl = li.querySelector(".themes"); let s = ""; (r.themes || []).slice(0, 3).forEach(t => { const n = s ? s + " \u00b7 " + t : t; if (!s || n.length <= 88) s = n; }); if (s) tl.textContent = "Themes: " + s; else tl.remove(); }
     li.querySelector(".fit").innerHTML = "";
     { const ft = r.fit || (target === "recs" ? fitFor(r) : ""); if (ft) { const b = document.createElement("b"); b.textContent = "Why you'll like it: "; li.querySelector(".fit").append(b, document.createTextNode(ft)); } else li.querySelector(".fit").remove(); }
@@ -437,8 +438,6 @@ $("more").onclick = () => recommend(true);
 
 (async () => {
   const s = await store.get(["user", "cache"]);
-  if (s.user) $("user").value = s.user;
-  if (s.cache) { data = s.cache; showData(); }
   updateGo();
 })();
 
