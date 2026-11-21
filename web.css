@@ -137,3 +137,13 @@ select:hover{background-color:#566680!important}
 .moods + .row{margin-top:12px}
 .row + .row{margin-top:12px}
 .rh{display:inline-flex;align-items:center;gap:14px;margin-left:auto}
+
+.mood{font-family:"Hanken Grotesk",GraphikWeb,-apple-system,"Segoe UI",sans-serif!important;font-size:16px!important;font-weight:400!important;letter-spacing:normal!important}
+#extra{font-family:"Hanken Grotesk",GraphikWeb,-apple-system,"Segoe UI",sans-serif!important;font-size:16px!important}
+#extra::placeholder{font-family:inherit}
+.ratewrap{position:absolute;top:10px;right:12px;display:flex;align-items:center;gap:10px}
+.ratewrap .ratebadge{position:static}
+.crown{display:inline-flex;align-items:center;gap:5px;color:#9ab;font-size:14px;font-weight:600}
+.crown svg{display:block}
+.rec h3{padding-right:150px}
+.moodrow:last-child .mood{flex:0 0 auto}

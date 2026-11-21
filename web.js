@@ -271,9 +271,9 @@ const G = (m, ...gs) => gs.some(g => m.genres.includes(g));
 const GORE = /gore|gory|slasher|splatter|blood|body horror|torture|brutal|massacre|mutilat|cannibal|dismember|violen/i;
 const MOODS = {
   "1001 Movies You Must See Before You Die": () => true,
-  "Ultimate film studies": () => true,
+  "The Ultimate Film Studies": () => true,
   "Revolutionary / cinema history": m => m.year && m.year < 1975 && m.rating >= 3.8,
-  "Cinematography": m => m.rating >= 4,
+  "Beautiful cinematography": m => m.rating >= 4,
   "Award winning": () => true,
   "Drama": m => G(m, "Drama") && m.rating >= 3.6,
   "Thriller": m => G(m, "Thriller"),
@@ -286,6 +286,7 @@ const MOODS = {
   "Documentary": m => G(m, "Documentary"),
   "Indie": m => m.count < 80000 && m.rating >= 3.4,
   "Based on a true story": m => G(m, "History", "Crime", "Documentary", "War") && m.rating >= 3.6,
+  "Letterboxd's Top 500 Films": () => true,
   "A24": () => true,
   "Independent film studio": () => true,
   "Weird and unexpected": m => G(m, "Fantasy", "Science Fiction", "Horror", "Mystery") && m.count < 250000,
@@ -429,6 +430,7 @@ function renderRecs(list, append, target) {
     const li = document.createElement("li"); li.className = "rec";
     li.dataset.rating = r.rating || 0;
     li.dataset.idx = start + k;
+    li.dataset.slug = r.slug || "";
     li.innerHTML = '<div class="rank"></div><img class="rp" alt=""><div><h3></h3><div class="meta"></div><p class="desc"></p><p class="why"></p><p class="themes"></p><p class="rated"></p><p class="fit"></p><p class="because"></p><a target="_blank" rel="noopener">Open on Letterboxd ↗</a></div>';
     li.querySelector(".rank").textContent = start + k + 1;
     const im = li.querySelector(".rp");
@@ -440,7 +442,7 @@ function renderRecs(list, append, target) {
     li.querySelector(".desc").textContent = r.desc || "";
     li.querySelector(".why").textContent = r.why || "";
     li.querySelector(".rated").remove();
-    if (r.rating) { const bd = document.createElement("div"); bd.className = "ratebadge"; bd.title = "Letterboxd members' average rating"; bd.textContent = Number(r.rating).toFixed(1) + " \u2605"; li.append(bd); }
+    if (r.rating) { const bd = document.createElement("div"); bd.className = "ratebadge"; bd.title = "Letterboxd members' average rating"; bd.textContent = Number(r.rating).toFixed(1) + " \u2605"; const wr = document.createElement("div"); wr.className = "ratewrap"; wr.append(bd); li.append(wr); }
     { const tl = li.querySelector(".themes"); let s = ""; (r.themes || []).slice(0, 3).forEach(t => { const n = s ? s + " \u00b7 " + t : t; if (!s || n.length <= 88) s = n; }); if (s) tl.textContent = "Themes: " + s; else tl.remove(); }
     li.querySelector(".fit").innerHTML = "";
     { const ft = r.fit || (target === "recs" ? fitFor(r) : ""); if (ft) { const b = document.createElement("b"); b.textContent = "Why you'll like it: "; li.querySelector(".fit").append(b, document.createTextNode(ft)); } else li.querySelector(".fit").remove(); }
@@ -449,6 +451,7 @@ function renderRecs(list, append, target) {
     ol.append(li);
   });
   if (target === "recs") applyRecFilter(); else ensureFilter(ol);
+  decorateCrowns();
 }
 
 /* ---------- Wiring ---------- */
@@ -774,9 +777,10 @@ async function pagedSlugs(url, maxPages) {
 const CINE_EXTRA = ["days-of-heaven", "barry-lyndon", "in-the-mood-for-love", "come-and-see", "the-tree-of-life", "ran", "hero-2002", "the-assassin-2015", "stalker", "2001-a-space-odyssey", "lawrence-of-arabia", "blade-runner-2049", "the-revenant-2015", "roma-2018", "wings-of-desire", "the-fall-2006", "melancholia", "phantom-thread", "portrait-of-a-lady-on-fire", "the-grand-budapest-hotel", "apocalypse-now", "the-godfather", "citizen-kane", "sunrise-a-song-of-two-humans", "the-conformist", "mulholland-drive", "2046", "happy-together", "the-red-shoes", "black-narcissus", "au-hasard-balthazar", "tokyo-story", "the-spirit-of-the-beehive", "paris-texas"];
 const MOOD_SOURCES = {
   "1001 Movies You Must See Before You Die": { urls: ["https://letterboxd.com/gubarenko/list/1001-movies-you-must-see-before-you-die-2021/"], pages: 3, note: "is on the 1001 Movies You Must See Before You Die list" },
-  "Ultimate film studies": { urls: ["https://letterboxd.com/ganyyy/list/the-ultimate-film-studies-watchlist-expanded/"], pages: 2, note: "is on the Ultimate Film Studies watchlist" },
-  "Cinematography": { urls: ["https://letterboxd.com/oscars/list/oscar-winning-films-cinematography/"], extra: CINE_EXTRA, pages: 2, note: "is celebrated for its cinematography" },
+  "The Ultimate Film Studies": { urls: ["https://letterboxd.com/ganyyy/list/the-ultimate-film-studies-watchlist-expanded/"], pages: 2, note: "is on the Ultimate Film Studies watchlist" },
+  "Beautiful cinematography": { urls: ["https://letterboxd.com/oscars/list/oscar-winning-films-cinematography/"], extra: CINE_EXTRA, pages: 2, note: "is celebrated for its cinematography" },
   "Award winning": { urls: ["https://letterboxd.com/oscars/list/oscar-winning-films-best-picture/", "https://letterboxd.com/darrencb/list/palme-dor-winners-ranked-1/"], pages: 2, note: "won a Best Picture Oscar or the Palme d\u2019Or" },
+  "Letterboxd's Top 500 Films": { urls: ["https://letterboxd.com/official/list/letterboxds-top-500-films/"], pages: 3, note: "is in Letterboxd\u2019s Top 500 Films" },
   "A24": { urls: ["https://letterboxd.com/studio/a24/"], pages: 4, note: "is an A24 film" },
   "Independent film studio": { urls: ["https://letterboxd.com/studio/mubi/", "https://letterboxd.com/studio/searchlight-pictures/", "https://letterboxd.com/studio/focus-features/", "https://letterboxd.com/studio/annapurna-pictures/", "https://letterboxd.com/studio/ifc-films/", "https://letterboxd.com/studio/sony-pictures-classics/"], pages: 2, note: "comes from an independent film studio" }
 };
@@ -785,3 +789,38 @@ async function sourceSlugs(k) {
   const parts = await Promise.all(s.urls.map(u => pagedSlugs(u, s.pages).catch(() => [])));
   return [...new Set([...parts.flat(), ...(s.extra || [])])];
 }
+
+async function loadTop500() {
+  if (window.__top500) return window.__top500;
+  window.__top500 = (async () => {
+    const base = "https://letterboxd.com/official/list/letterboxds-top-500-films/";
+    const map = {};
+    const pages = await pmap([1, 2, 3, 4, 5], p => getText(p === 1 ? base : base + "page/" + p + "/"), 3);
+    pages.forEach((t, pi) => {
+      if (!t) return;
+      let idx = 0;
+      parseDoc(t).querySelectorAll("[data-item-slug],[data-film-slug]").forEach(e => {
+        const s = e.dataset.itemSlug || e.dataset.filmSlug;
+        if (s && !(s in map)) map[s] = pi * 100 + (++idx);
+      });
+    });
+    window.__top500Map = map;
+    return map;
+  })();
+  return window.__top500;
+}
+function decorateCrowns() {
+  const map = window.__top500Map;
+  if (!map) return;
+  document.querySelectorAll(".rec").forEach(li => {
+    const rank = map[li.dataset.slug];
+    if (!rank || li.querySelector(".crown")) return;
+    let wr = li.querySelector(".ratewrap");
+    if (!wr) { wr = document.createElement("div"); wr.className = "ratewrap"; li.append(wr); }
+    const cr = document.createElement("span"); cr.className = "crown"; cr.title = "Letterboxd\u2019s Top 500 Films, rank " + rank;
+    cr.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M2.5 19h19l1.2-11.5-5.2 4.2L12 4.5 6.5 11.7 1.3 7.5z" fill="#e6c229"/></svg>';
+    cr.append(document.createTextNode(String(rank)));
+    wr.prepend(cr);
+  });
+}
+loadTop500().then(decorateCrowns).catch(() => {});
