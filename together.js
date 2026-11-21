@@ -188,6 +188,7 @@ const MOODS = {
   "4★+": m => m.rating >= 4,
   "Surprise me": () => true,
 };
+const CINE_EXTRA = ["days-of-heaven", "barry-lyndon", "in-the-mood-for-love", "come-and-see", "the-tree-of-life", "ran", "hero-2002", "the-assassin-2015", "stalker", "2001-a-space-odyssey", "lawrence-of-arabia", "blade-runner-2049", "the-revenant-2015", "roma-2018", "wings-of-desire", "the-fall-2006", "melancholia", "phantom-thread", "portrait-of-a-lady-on-fire", "the-grand-budapest-hotel", "apocalypse-now", "the-godfather", "citizen-kane", "sunrise-a-song-of-two-humans", "the-conformist", "mulholland-drive", "2046", "happy-together", "the-red-shoes", "black-narcissus", "au-hasard-balthazar", "tokyo-story", "the-spirit-of-the-beehive", "paris-texas"];
 const MOOD_SOURCES = {
   "1001 Movies You Must See Before You Die": { urls: ["https://letterboxd.com/gubarenko/list/1001-movies-you-must-see-before-you-die-2021/"], pages: 3, note: "is on the 1001 Movies You Must See Before You Die list" },
   "The Ultimate Film Studies": { urls: ["https://letterboxd.com/ganyyy/list/the-ultimate-film-studies-watchlist-expanded/"], pages: 2, note: "is on the Ultimate Film Studies watchlist" },
