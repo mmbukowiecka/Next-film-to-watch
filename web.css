@@ -195,3 +195,9 @@ select:hover{background-color:#566680!important}
 .mood.listmood:hover{background:#566680!important;color:#fff!important}
 .mood.listmood[aria-pressed="true"]{background:#00e054!important;border-color:#00e054!important;color:#14181c!important;font-weight:700!important}
 
+
+.actions{align-items:flex-start!important;gap:14px!important}
+.actions .pill{display:flex;flex-direction:column;align-items:center;gap:6px}
+.actions .cap{font-style:italic;font-family:Georgia,"Times New Roman",serif;font-size:15px;color:#99aabb}
+.actions .or{font-style:italic;font-family:Georgia,"Times New Roman",serif;font-size:15px;color:#99aabb;line-height:46px}
+button#surprise:hover,button#surprise:hover:not(:disabled),button#surprise:focus{background:#e5383b!important;color:#000!important}
