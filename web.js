@@ -472,11 +472,11 @@ function fitFor(r) {
   if (text) parts.push("fits what you described (\u201c" + (text.length > 50 ? text.slice(0, 50) + "\u2026" : text) + "\u201d)");
   if (moods.length) parts.push("ticks your " + moods.join(" + ").toLowerCase() + " pick");
   if (sim) parts.push("is close to " + sim);
-  if (r.because && r.because.length) parts.push("people who love " + r.because.slice(0, 2).join(" and ") + " (which you rated highly) love it too");
+  if (r.because && r.because.length) parts.push("is loved by fans of " + r.because.slice(0, 2).join(" and ") + ", which you rated highly");
   else if (!parts.length && r.genres && r.genres.length) parts.push("is a " + r.genres.slice(0, 2).join("/").toLowerCase() + " pick that suits your highly rated films");
   if (!parts.length) return "";
-  const s = parts.join(", and it ");
-  return "It " + s + ".";
+  const s = parts.length > 1 ? parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1] : parts[0];
+  return s.charAt(0).toUpperCase() + s.slice(1) + ".";
 }
 function ensureFilter(ol) {
   let bar = ol.previousElementSibling;
