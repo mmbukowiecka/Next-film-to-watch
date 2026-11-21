@@ -230,6 +230,7 @@ function getDetails(slug) {
       slug, title: ld.name, year: parseInt(String(ld.dateCreated || "").slice(0, 4)) || null,
       director: (ld.director || []).map(x => x.name).slice(0, 2).join(", "), runtime: rm ? +rm[1] : null,
       rating: agg.ratingValue || null, count: agg.ratingCount || 0, genres: ld.genre || [],
+      desc: ((doc.querySelector('meta[name="description"]') || {}).content || "").replace(/\s+/g, " ").trim(),
       poster: typeof ld.image === "string" ? ld.image : "",
     };
   })();
@@ -311,7 +312,8 @@ async function similarTo(f, ids = ["simBox", "simTitle", "simRecs"], verb = "wat
     const list = (await similarList(slug)).filter(s => !seenSlugs.has(s)).slice(0, 14);
     const details = (await pmap(list, getDetails, 7)).filter(d => d && !seenDetail(d)).slice(0, 5);
     $(ids[1]).textContent = "Because you " + verb + " " + f.name;
-    renderRecs(details.map(d => ({ ...d, why: whyOf(d) })), false, ids[2]);
+    const sd = await getDetails(slug).catch(() => null);
+    renderRecs(details.map(d => ({ ...d, why: whyOf(d), fit: fitSim(d, sd, f.name) })), false, ids[2]);
   } catch (e) { $(ids[1]).textContent = "Couldn't find similar films right now. Try again."; }
 }
 
@@ -390,7 +392,7 @@ function renderRecs(list, append, target) {
   list.forEach((r, k) => {
     const li = document.createElement("li"); li.className = "rec";
     li.dataset.rating = r.rating || 0;
-    li.innerHTML = '<div class="rank"></div><img class="rp" alt=""><div><h3></h3><div class="meta"></div><p class="why"></p><p class="because"></p><a target="_blank" rel="noopener">Open on Letterboxd ↗</a></div>';
+    li.innerHTML = '<div class="rank"></div><img class="rp" alt=""><div><h3></h3><div class="meta"></div><p class="desc"></p><p class="why"></p><p class="fit"></p><p class="because"></p><a target="_blank" rel="noopener">Open on Letterboxd ↗</a></div>';
     li.querySelector(".rank").textContent = start + k + 1;
     const im = li.querySelector(".rp");
     if (r.poster) { im.src = r.poster; im.referrerPolicy = "no-referrer"; } else im.remove();
@@ -398,12 +400,15 @@ function renderRecs(list, append, target) {
     const sm = document.createElement("small"); sm.textContent = r.year || ""; h.append(sm);
     if (r.onWatchlist) { const w = document.createElement("span"); w.className = "wl"; w.textContent = "On your watchlist"; h.append(w); }
     li.querySelector(".meta").textContent = [r.director, r.runtime && r.runtime + " min"].filter(Boolean).join(" · ");
+    li.querySelector(".desc").textContent = r.desc || "";
     li.querySelector(".why").textContent = r.why || "";
+    li.querySelector(".fit").innerHTML = "";
+    { const ft = r.fit || (target === "recs" ? fitFor(r) : ""); if (ft) { const b = document.createElement("b"); b.textContent = "Why you'll like it: "; li.querySelector(".fit").append(b, document.createTextNode(ft)); } else li.querySelector(".fit").remove(); }
     li.querySelector(".because").textContent = r.because && r.because.length ? "Because you rated highly: " + r.because.join(", ") : "";
     li.querySelector("a").href = "https://letterboxd.com/film/" + r.slug + "/";
     ol.append(li);
   });
-  if (target === "recs") applyRecFilter();
+  if (target === "recs") applyRecFilter(); else ensureFilter(ol);
 }
 
 /* ---------- Wiring ---------- */
@@ -448,3 +453,60 @@ document.querySelectorAll(".scrollbtn").forEach(btn => btn.addEventListener("cli
   const r = document.getElementById("recent");
   r.scrollBy({ left: Number(btn.dataset.dir) * r.clientWidth * 0.8, behavior: "smooth" });
 }));
+
+function fitSim(d, sd, name) {
+  const parts = [];
+  const sg = sd ? (sd.genres || []).filter(x => (d.genres || []).includes(x)) : [];
+  if (sg.length) parts.push("shares the " + sg.slice(0, 3).join("/").toLowerCase() + " feel of " + name);
+  else parts.push("is a close neighbour of " + name + " in what Letterboxd members watch");
+  if (sd && sd.director && d.director && sd.director.split(", ").some(x => d.director.split(", ").includes(x))) parts.push("it is by the same director, " + d.director.split(", ")[0]);
+  if (d.rating) parts.push("members rate it " + d.rating.toFixed(1) + "\u2605" + (sd && sd.rating && d.rating >= sd.rating ? ", even higher than " + name : ""));
+  const s = parts.join("; ");
+  return s.charAt(0).toUpperCase() === s.charAt(0) ? s + "." : s.charAt(0).toUpperCase() + s.slice(1) + ".";
+}
+function fitFor(r) {
+  const moods = [...document.querySelectorAll(".mood")].filter(b => b.getAttribute("aria-pressed") === "true").map(b => b.textContent.trim()).filter(x => x !== "Surprise me");
+  const text = ($("extra").value || "").trim();
+  const sim = ($("similar").value || "").trim();
+  const parts = [];
+  if (text) parts.push("fits what you described (\u201c" + (text.length > 50 ? text.slice(0, 50) + "\u2026" : text) + "\u201d)");
+  if (moods.length) parts.push("ticks your " + moods.join(" + ").toLowerCase() + " pick");
+  if (sim) parts.push("is close to " + sim);
+  if (r.because && r.because.length) parts.push("people who love " + r.because.slice(0, 2).join(" and ") + " (which you rated highly) love it too");
+  else if (!parts.length && r.genres && r.genres.length) parts.push("is a " + r.genres.slice(0, 2).join("/").toLowerCase() + " pick that suits your highly rated films");
+  if (!parts.length) return "";
+  const s = parts.join(", and it ");
+  return "It " + s + ".";
+}
+function ensureFilter(ol) {
+  let bar = ol.previousElementSibling;
+  if (!(bar && bar.classList.contains("rfbar"))) {
+    bar = document.createElement("div"); bar.className = "rfbar";
+    bar.innerHTML = '<button type="button" class="ghost rfx" data-min="0" aria-pressed="true">All</button><button type="button" class="ghost rfx" data-min="3.5" aria-pressed="false">3.5\u2605+</button><button type="button" class="ghost rfx" data-min="4" aria-pressed="false">4\u2605+</button><span class="rfn"></span>';
+    ol.before(bar);
+    bar.querySelectorAll(".rfx").forEach(btn => btn.addEventListener("click", () => {
+      bar.querySelectorAll(".rfx").forEach(x => x.setAttribute("aria-pressed", String(x === btn)));
+      const min = Number(btn.dataset.min); let n = 0;
+      const items = [...ol.querySelectorAll(".rec")];
+      items.forEach(li => { const ok = Number(li.dataset.rating) >= min; li.hidden = !ok; if (ok) n++; });
+      bar.querySelector(".rfn").textContent = n || !items.length ? "" : "No films here reach that rating";
+    }));
+  } else {
+    bar.querySelectorAll(".rfx").forEach((x, i) => x.setAttribute("aria-pressed", String(i === 0)));
+    bar.querySelector(".rfn").textContent = "";
+  }
+}
+{
+  const _sd = showData;
+  showData = function () {
+    _sd.apply(this, arguments);
+    const w = document.getElementById("welcome");
+    if (w && data && data.user) {
+      w.textContent = "Welcome back, ";
+      const u = document.createElement("u"); u.textContent = data.user;
+      w.append(u, document.createTextNode(". Here\u2019s what you\u2019ve been watching\u2026"));
+      w.hidden = false;
+    }
+  };
+  if (data) showData();
+}
