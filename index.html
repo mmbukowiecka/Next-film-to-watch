@@ -1,18 +1,17 @@
-<!doctype html>
-<html lang="en">
-<head>
+<!DOCTYPE html>
+<html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Next film to watch?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,400;1,9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="web.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,400;1,9..144,600&amp;family=Hanken+Grotesk:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,400;6..72,600&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="web.css?v=2">
 </head>
 <body>
 <div class="wrap">
   <header>
-    <a class="topbtn" href="together.html">Watching with others?</a>
+    <a class="topbtn" href="together.html">Watching with <span class="gr">others?</span></a>
     <h1>Next film <span>to watch?</span></h1>
     <p class="lede">Type your Letterboxd username and get films you have not seen, matched to your taste.</p>
   </header>
@@ -24,58 +23,59 @@
       <button id="load">Load my films</button>
     </div>
     <div class="status" id="loadStatus"></div>
-    <p class="welcome" id="welcome" hidden></p>
+    <p class="welcome" id="welcome" hidden=""></p>
     <div class="stats" id="stats"></div>
     
   </section>
 
-  <section class="panel" id="favPanel" hidden>
+  <section class="panel" id="favPanel" hidden="">
     <div class="row between"><h2>Favourite films</h2><span class="hint">Click one to find films you haven't seen that feel similar</span></div>
     <div class="favgrid" id="favs"></div>
-    <div id="fsBox" hidden><div class="label" id="fsTitle"></div><ol class="recs" id="fsRecs"></ol></div>
+    <div id="fsBox" hidden=""><div class="label" id="fsTitle"></div><ol class="recs" id="fsRecs"></ol></div>
   </section>
 
-  <section class="panel" id="recentPanel" hidden>
-    <div class="row between"><h2>Last 20 watched</h2><span class="rh"><span class="hint">Scroll and click on one film to find similar ones</span><span class="sb"><button type="button" class="ghost scrollbtn" data-dir="-1" aria-label="Scroll left">&lsaquo;</button><button type="button" class="ghost scrollbtn" data-dir="1" aria-label="Scroll right">&rsaquo;</button></span></span></div>
+  <section class="panel" id="recentPanel" hidden="">
+    <div class="row between"><h2>Last 20 watched</h2><span class="rh"><span class="hint">Scroll and click on one film to find similar ones</span><span class="sb"><button type="button" class="ghost scrollbtn" data-dir="-1" aria-label="Scroll left">‹</button><button type="button" class="ghost scrollbtn" data-dir="1" aria-label="Scroll right">›</button></span></span></div>
     <div class="recent" id="recent"></div>
-    <div id="simBox" hidden><div class="label" id="simTitle"></div><ol class="recs" id="simRecs"></ol></div>
+    <div id="simBox" hidden=""><div class="label" id="simTitle"></div><ol class="recs" id="simRecs"></ol></div>
   </section>
 
-  <section class="panel" id="askPanel" hidden>
-    <h2>What do you want to watch?</h2>
-    <textarea id="extra" rows="3" placeholder="Describe it in your own words, whatever is in your head"></textarea>
-    <p class="hint">I pick up keywords in your description, like horror, comedy, sci-fi, thriller, romance, war, 70s or 90s.</p>
-    <div class="row">
+  <section class="panel" id="askPanel" hidden="">
+    <div class="persbar"><button type="button" class="persbtn" id="persToggle" aria-expanded="false">Personalise your recommendation list</button></div><div id="persBox" hidden=""><div class="incrow"><button type="button" class="incbtn" data-sec="secDesc">Include description</button><button type="button" class="incbtn" data-sec="secFilt">Include filters</button><button type="button" class="incbtn" data-sec="secLists">Include movies from Letterboxd lists</button></div><div class="incsec" id="secDesc" hidden=""><div class="sechead"><span class="sectitle">Description</span><button type="button" class="secx" data-sec="secDesc" aria-label="Remove">✕</button></div><textarea id="extra" rows="3" placeholder="Describe it in your own words, whatever is in your head"></textarea><p class="hint">I pick up keywords in your description, like horror, comedy, sci-fi, thriller, romance, war, 70s or 90s.</p></div><div class="incsec" id="secFilt" hidden=""><div class="sechead"><span class="sectitle">Filters</span><button type="button" class="secx" data-sec="secFilt" aria-label="Remove">✕</button></div><div class="row">
       <input type="text" id="similar" placeholder="Similar to this film… (type a title)" autocomplete="off">
       <select id="len" aria-label="Runtime">
         <option value="100">Up to 1h 40</option>
         <option value="120">Up to 2h</option>
         <option value="150">Up to 2h 30</option>
-        <option value="0" selected>Any length</option>
+        <option value="0" selected="">Any length</option>
       </select>
-    </div>
-    <div class="row">
+    </div><div class="row">
       <input type="text" id="director" placeholder="By this director… (type a name)" autocomplete="off">
-      <select id="decade" aria-label="Decade"><option value="0" selected>Any decade</option><option value="-1">Before 1920</option><option value="1920">1920s</option><option value="1930">1930s</option><option value="1940">1940s</option><option value="1950">1950s</option><option value="1960">1960s</option><option value="1970">1970s</option><option value="1980">1980s</option><option value="1990">1990s</option><option value="2000">2000s</option><option value="2010">2010s</option><option value="2020">2020s</option></select>
-    </div>
-    <div>
+      <select id="decade" aria-label="Decade"><option value="0" selected="">Any decade</option><option value="-1">Before 1920</option><option value="1920">1920s</option><option value="1930">1930s</option><option value="1940">1940s</option><option value="1950">1950s</option><option value="1960">1960s</option><option value="1970">1970s</option><option value="1980">1980s</option><option value="1990">1990s</option><option value="2000">2000s</option><option value="2010">2010s</option><option value="2020">2020s</option></select>
+    </div><div>
       <div class="label">Pick one or more</div>
       <div class="moods" id="moods"><div class="moodrow"><button type="button" class="mood" data-p="1001 Movies You Must See Before You Die">1001 Movies You Must See Before You Die</button><button type="button" class="mood" data-p="The Ultimate Film Studies">The Ultimate Film Studies</button><button type="button" class="mood" data-p="Beautiful cinematography">Beautiful cinematography</button><button type="button" class="mood" data-p="Award winning">Award winning</button></div><div class="moodrow"><button type="button" class="mood" data-p="Drama">Drama</button><button type="button" class="mood" data-p="Thriller">Thriller</button><button type="button" class="mood" data-p="Horror">Horror</button><button type="button" class="mood" data-p="Gory horror">Gory horror</button><button type="button" class="mood" data-p="Comedy">Comedy</button><button type="button" class="mood" data-p="Satire">Satire</button><button type="button" class="mood" data-p="Chick flicks">Chick flicks</button><button type="button" class="mood" data-p="Sci-fi">Sci-fi</button><button type="button" class="mood" data-p="Indie">Indie</button></div><div class="moodrow"><button type="button" class="mood" data-p="A24">A24</button><button type="button" class="mood" data-p="Independent film studio">Independent film studio</button><button type="button" class="mood" data-p="Documentary">Documentary</button><button type="button" class="mood" data-p="3.5★+">3.5★+</button><button type="button" class="mood" data-p="4★+">4★+</button><button type="button" class="mood" data-p="Letterboxd's Top 500 Films">Letterboxd's Top 500 Films</button><button type="button" class="mood" data-p="IMDb Top 250">IMDb Top 250</button></div></div>
-    </div>
-    <div>
+    </div></div><div class="incsec" id="secLists" hidden=""><div class="sechead"><span class="sectitle">Letterboxd lists</span><button type="button" class="secx" data-sec="secLists" aria-label="Remove">✕</button></div><div>
       <div class="label">Show films included in these lists</div>
       <div class="moods" id="moods2"><div class="moodrow"><button type="button" class="mood listmood" data-p="What is reality?">What is reality?</button><button type="button" class="mood listmood" data-p="Hopeless cinema">Hopeless cinema</button><button type="button" class="mood listmood" data-p="Feeling lost in your 20’s">Feeling lost in your 20’s</button><button type="button" class="mood listmood" data-p="Good Films, 90 Minutes or Less">Good Films, 90 Minutes or Less</button></div></div>
-    </div>
-    <div class="row actions"><div class="pill"><button id="go" disabled>Recommend films</button><span class="cap">Blue pill</span></div><span class="or">or</span><div class="pill"><button type="button" class="surprise" id="surprise">Surprise me</button><span class="cap">Red pill?</span></div><button type="button" class="mood" id="surpriseMood" data-p="Surprise me" hidden>Surprise me</button></div>
+    </div></div></div>
+    
+    
+    
+    
+    
+    
+    <div class="row actions"><div class="pill"><button id="go" disabled="">Recommend films</button><span class="cap">Blue pill</span></div><span class="or">or</span><div class="pill"><button type="button" class="surprise" id="surprise">Surprise me</button><span class="cap">Red pill?</span></div><button type="button" class="mood" id="surpriseMood" data-p="Surprise me" hidden="">Surprise me</button></div>
     <div class="status" id="status"></div>
   </section>
 
-  <section class="panel" id="out" hidden>
-    <div class="row between"><h2>Your shortlist</h2><span class="rfs"><button type="button" class="ghost rf" data-min="0" aria-pressed="true">Most similar</button><button type="button" class="ghost rf" data-min="3.5" aria-pressed="false">3.5&#9733;+</button><button type="button" class="ghost rf" data-min="4" aria-pressed="false">4&#9733;+</button></span><span><button class="ghost" id="more">Show 6 more</button> <button class="ghost" id="clear">Clear recommendations</button></span></div>
-    <p class="hint" id="recNone" hidden>No films here reach that rating. Try All.</p>
+  <section class="panel" id="out" hidden="">
+    <div class="row between"><h2>Your shortlist</h2><span class="rfs"><button type="button" class="ghost rf" data-min="0" aria-pressed="true">Most similar</button><button type="button" class="ghost rf" data-min="3.5" aria-pressed="false">3.5★+</button><button type="button" class="ghost rf" data-min="4" aria-pressed="false">4★+</button></span><span><button class="ghost" id="more">Show 6 more</button> <button class="ghost" id="clear">Clear recommendations</button></span></div>
+    <p class="hint" id="recNone" hidden="">No films here reach that rating. Try All.</p>
     <ol class="recs" id="recs"></ol>
   </section>
 </div>
-<script src="web.js"></script>
-</body>
-</html>
+<script src="web.js?v=2"></script>
+
+
+</body></html>

@@ -837,3 +837,27 @@ function decorateCrowns() {
   });
 }
 loadTop500().then(decorateCrowns).catch(() => {});
+
+function initPers(btnId, boxId) {
+  var btn = document.getElementById(btnId), box = document.getElementById(boxId);
+  if (!btn || !box) return;
+  var SEC = ["secDesc", "secFilt", "secLists"];
+  var gg = function (id) { return document.getElementById(id); };
+  var resetEl = function (el) { if (!el) return; if (el.tagName === "SELECT") { var i = [].findIndex.call(el.options, function (o) { return o.defaultSelected; }); el.selectedIndex = i < 0 ? 0 : i; } else el.value = ""; };
+  var unpress = function (sel) { document.querySelectorAll(sel).forEach(function (b) { b.setAttribute("aria-pressed", "false"); }); };
+  function clearSec(id) {
+    if (id === "secDesc") resetEl(gg("extra"));
+    if (id === "secFilt") { ["similar", "len", "director", "decade"].forEach(function (x) { resetEl(gg(x)); }); unpress("#moods .mood"); }
+    if (id === "secLists") unpress("#moods2 .mood");
+  }
+  function show(id, on) { gg(id).hidden = !on; var b = box.querySelector('.incbtn[data-sec="' + id + '"]'); if (b) b.hidden = on; }
+  box.querySelectorAll(".incbtn").forEach(function (b) { b.onclick = function () { show(b.dataset.sec, true); }; });
+  box.querySelectorAll(".secx").forEach(function (b) { b.onclick = function () { clearSec(b.dataset.sec); show(b.dataset.sec, false); if (window.onSecCleared) window.onSecCleared(); }; });
+  btn.onclick = function () {
+    var open = box.hidden; box.hidden = !open;
+    btn.setAttribute("aria-expanded", String(open));
+    btn.textContent = open ? "Hide personalisation" : "Personalise your recommendation list";
+    if (!open) { SEC.forEach(function (id) { clearSec(id); show(id, false); }); if (window.onSecCleared) window.onSecCleared(); }
+  };
+}
+initPers("persToggle", "persBox");

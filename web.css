@@ -233,3 +233,21 @@ button#surprise:hover,button#surprise:hover:not(:disabled),button#surprise:focus
 .persbtn:hover{background:#566680!important}
 .perspanel{text-align:left;margin-top:16px}
 .perspanel .row input{flex:1 1 auto}
+
+/* personalise v2 */
+.topbtn .gr{color:#00e054}
+.persbar{display:flex;justify-content:center}
+#persWrap{display:grid;gap:18px;justify-items:center}
+#persWrap .perspanel{justify-self:stretch}
+#persBox{display:grid;gap:18px}
+#persBox[hidden],.incsec[hidden],.incbtn[hidden],#recs>li[hidden]{display:none!important}
+.incrow{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+button.incbtn{background:#2c3440!important;color:#fff!important;border:1px solid #6b7c93!important;font-weight:700!important;padding:10px 16px!important;border-radius:4px;cursor:pointer}
+button.incbtn:hover{background:#4a586b!important}
+.incsec{display:grid;gap:18px;border:1px solid var(--line);border-radius:6px;padding:16px}
+.sechead{display:flex;justify-content:space-between;align-items:center}
+.sectitle{color:#00e054;font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+button.secx{background:none!important;border:0!important;color:#9ab!important;font-size:18px;line-height:1;padding:0 6px!important;cursor:pointer}
+button.secx:hover{color:#fff!important}
+#askPanel>.row.actions{margin-top:4px}
+.actions2.center{justify-content:center}
