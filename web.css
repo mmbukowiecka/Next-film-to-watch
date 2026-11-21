@@ -194,3 +194,5 @@ select:hover{background-color:#566680!important}
 .mood.listmood{background:#4a586b!important;border:1px solid #6b7c93!important;color:#fff!important;font-weight:700!important}
 .mood.listmood:hover{background:#566680!important;color:#fff!important}
 .mood.listmood[aria-pressed="true"]{background:#00e054!important;border-color:#00e054!important;color:#14181c!important;font-weight:700!important}
+
+.mood.listmood{font-style:italic!important}
