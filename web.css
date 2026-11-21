@@ -178,3 +178,7 @@ select:hover{background-color:#566680!important}
 .mood.listmood{background:#00e054!important;color:#14181c!important}
 .mood.listmood:hover{background:#33e676!important}
 .mood.listmood[aria-pressed="true"]{background:#008c35!important;color:#fff!important;box-shadow:inset 0 0 0 2px #fff}
+
+.mood.listmood{background:#2c3440!important;color:#00e054!important;box-shadow:none!important}
+.mood.listmood:hover{background:#38424f!important;color:#33e676!important}
+.mood.listmood[aria-pressed="true"]{background:#00e054!important;color:#2c3440!important;box-shadow:none!important}
