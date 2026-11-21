@@ -455,15 +455,16 @@ function renderRecs(list, append, target) {
 }
 
 /* ---------- Wiring ---------- */
-function updateGo() { $("go").disabled = !data; }
+function updateGo() { $("go").disabled = !data; $("surprise").disabled = !data; }
 
 document.querySelectorAll(".mood").forEach(b => {
   b.setAttribute("aria-pressed", "false");
-  b.onclick = () => b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true");
+  b.onclick = () => { const sm = document.getElementById("surpriseMood"); if (sm && b !== sm) sm.setAttribute("aria-pressed", "false"); b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true"); };
 });
 $("load").onclick = loadProfile;
 $("user").addEventListener("keydown", e => { if (e.key === "Enter") loadProfile(); });
-$("go").onclick = () => { shown = []; recommend(false); };
+$("go").onclick = () => { $("surpriseMood").setAttribute("aria-pressed", "false"); shown = []; recommend(false); };
+$("surprise").onclick = () => { document.querySelectorAll(".mood").forEach(x => x.setAttribute("aria-pressed", "false")); $("surpriseMood").setAttribute("aria-pressed", "true"); shown = []; recommend(false); };
 $("more").onclick = () => recommend(true);
 
 (async () => {

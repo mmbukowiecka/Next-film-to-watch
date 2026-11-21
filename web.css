@@ -147,3 +147,9 @@ select:hover{background-color:#566680!important}
 .crown svg{display:block}
 .rec h3{padding-right:150px}
 .moodrow:last-child .mood{flex:0 0 auto}
+
+.mood[hidden]{display:none!important}
+.surprise{background:#40bcf4;color:#14181c;font-family:"Hanken Grotesk",GraphikWeb,-apple-system,"Segoe UI",sans-serif;font-size:16px;font-weight:600;padding:10px 22px;border-radius:3px;border:0;cursor:pointer}
+.surprise:hover{background:#6ccdf8}
+.surprise:disabled{opacity:.5;cursor:default}
+.moodrow:last-child .mood{flex:0 0 auto}
